@@ -4,7 +4,7 @@ import { GameStatus, type GameSnapshot } from './game'
 import type { Player } from './players'
 import { useGame } from './use-game'
 
-function statusText(snapshot: GameSnapshot, turnPlayer: Player): string {
+export function statusText(snapshot: GameSnapshot, turnPlayer: Player): string {
   switch (snapshot.status) {
     case GameStatus.Checkmate:
       return `Checkmate — ${turnPlayer.name} has no legal moves`

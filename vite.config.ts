@@ -10,6 +10,19 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     setupFiles: '.vitest/setup',
-    include: ['**/test.{ts,tsx}']
+    include: ['**/*.test.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      all: true,
+      include: ['src/features/chess/**'],
+      exclude: ['**/*.test.{ts,tsx}'],
+      reporter: ['text', 'html'],
+      thresholds: {
+        lines: 100,
+        functions: 100,
+        branches: 100,
+        statements: 100
+      }
+    }
   }
 })
