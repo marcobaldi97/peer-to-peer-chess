@@ -1,12 +1,9 @@
-import { Chessboard } from 'react-chessboard'
+import ChessGame from 'features/chess'
 
 function App() {
   return (
     <div className="relative overflow-hidden bg-white">
-      Hello world return
-      <div>
-        <Chessboard />;
-      </div>
+      <ChessGame />
     </div>
   )
 }
