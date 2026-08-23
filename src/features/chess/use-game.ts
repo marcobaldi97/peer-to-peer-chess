@@ -7,7 +7,13 @@ import {
 } from 'react'
 import type { Square, Color } from 'chess.js'
 import type { PieceDropHandlerArgs, PieceHandlerArgs } from 'react-chessboard'
-import { Game, createPlayers, PromotionPiece, type GameSnapshot } from './game'
+import {
+  Game,
+  createPlayers,
+  canDragPiece as canPlayerDragPiece,
+  PromotionPiece,
+  type GameSnapshot
+} from './game'
 import { PlayerKind } from './players'
 import { createStockfishEngine, type StockfishEngine } from './stockfish-engine'
 
@@ -58,6 +64,7 @@ export function useGame(vsComputer: boolean): UseGameResult {
 
       const color = piece.pieceType.charAt(0) as Color
 
+      // TODO: always promotes to Queen — needs a promotion-piece picker
       return game.submitMove(color, {
         from: sourceSquare as Square,
         to: targetSquare as Square,
@@ -68,15 +75,8 @@ export function useGame(vsComputer: boolean): UseGameResult {
   )
 
   const canDragPiece = useCallback(
-    ({ piece }: PieceHandlerArgs): boolean => {
-      if (snapshot.isGameOver) return false
-
-      const color = piece.pieceType.charAt(0) as Color
-
-      if (color !== snapshot.turn) return false
-
-      return snapshot.players[color].kind === PlayerKind.LocalHuman
-    },
+    ({ piece }: PieceHandlerArgs): boolean =>
+      canPlayerDragPiece(snapshot, piece.pieceType.charAt(0) as Color),
     [snapshot]
   )
 

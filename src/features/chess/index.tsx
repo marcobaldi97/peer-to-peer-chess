@@ -1,26 +1,15 @@
 import { useState } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { classNames } from 'utils'
-import { GameStatus, type GameSnapshot } from './game'
-import type { Player } from './players'
+import { statusText } from './game'
 import { useGame } from './use-game'
+import OnlineChessGame from './online-chess-game'
 
-export function statusText(snapshot: GameSnapshot, turnPlayer: Player): string {
-  switch (snapshot.status) {
-    case GameStatus.Checkmate:
-      return `Checkmate — ${turnPlayer.name} has no legal moves`
-    case GameStatus.Stalemate:
-      return 'Draw by stalemate'
-    case GameStatus.Draw:
-      return 'Draw'
-    case GameStatus.Check:
-      return `${turnPlayer.name} is in check`
-    default:
-      return `${turnPlayer.name} to move`
-  }
-}
+export { statusText }
 
-export default function ChessGame() {
+type Mode = 'local' | 'online'
+
+function LocalChessGame() {
   const [vsComputer, setVsComputer] = useState(false)
   const { snapshot, onPieceDrop, canDragPiece, newGame } = useGame(vsComputer)
   const turnPlayer = snapshot.players[snapshot.turn]
@@ -64,6 +53,47 @@ export default function ChessGame() {
       >
         New Game
       </button>
+    </div>
+  )
+}
+
+export default function ChessGame() {
+  const [mode, setMode] = useState<Mode>('local')
+
+  return (
+    <div className="flex flex-col items-center gap-4 pt-4">
+      <div className="flex gap-2" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'local'}
+          onClick={() => setMode('local')}
+          className={classNames(
+            'rounded-md px-3 py-1 text-sm font-medium',
+            mode === 'local'
+              ? 'bg-gray-800 text-white'
+              : 'bg-gray-100 text-gray-700'
+          )}
+        >
+          Local Game
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'online'}
+          onClick={() => setMode('online')}
+          className={classNames(
+            'rounded-md px-3 py-1 text-sm font-medium',
+            mode === 'online'
+              ? 'bg-gray-800 text-white'
+              : 'bg-gray-100 text-gray-700'
+          )}
+        >
+          Play Online
+        </button>
+      </div>
+
+      {mode === 'local' ? <LocalChessGame /> : <OnlineChessGame />}
     </div>
   )
 }

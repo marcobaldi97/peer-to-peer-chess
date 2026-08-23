@@ -3,6 +3,9 @@ vi.mock('./game', async (importOriginal) => {
   return { ...actual, Game: vi.fn(), createPlayers: vi.fn() }
 })
 vi.mock('react-chessboard', () => ({ Chessboard: vi.fn(() => null) }))
+vi.mock('./online-chess-game', () => ({
+  default: vi.fn(() => <div>online chess game</div>)
+}))
 
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Chessboard } from 'react-chessboard'
@@ -118,5 +121,36 @@ describe('<ChessGame />', () => {
     fireEvent.click(screen.getByRole('button', { name: /new game/i }))
 
     expect(createPlayers).toHaveBeenLastCalledWith(true)
+  })
+
+  describe('mode toggle', () => {
+    it('defaults to the local game', () => {
+      render(<ChessGame />)
+
+      expect(screen.getByRole('tab', { name: /local game/i })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+      expect(screen.getByTestId('game-status')).toBeInTheDocument()
+      expect(screen.queryByText('online chess game')).not.toBeInTheDocument()
+    })
+
+    it('switches to the online game and back', () => {
+      render(<ChessGame />)
+
+      fireEvent.click(screen.getByRole('tab', { name: /play online/i }))
+
+      expect(screen.getByText('online chess game')).toBeInTheDocument()
+      expect(screen.queryByTestId('game-status')).not.toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: /play online/i })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+
+      fireEvent.click(screen.getByRole('tab', { name: /local game/i }))
+
+      expect(screen.getByTestId('game-status')).toBeInTheDocument()
+      expect(screen.queryByText('online chess game')).not.toBeInTheDocument()
+    })
   })
 })

@@ -1,7 +1,13 @@
 vi.mock('chess.js', () => ({ Chess: vi.fn() }))
 
 import { Chess } from 'chess.js'
-import { Game, GameStatus, PromotionPiece, createPlayers } from './game'
+import {
+  Game,
+  GameStatus,
+  PromotionPiece,
+  canDragPiece,
+  createPlayers
+} from './game'
 import { PlayerKind } from './players'
 
 function createMockChess(overrides: Record<string, unknown> = {}) {
@@ -176,6 +182,43 @@ describe('Game', () => {
       game.submitMove('b', { from: 'e7', to: 'e5' })
 
       expect(listener).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('canDragPiece', () => {
+    function buildSnapshot(
+      overrides: Partial<ReturnType<Game['getSnapshot']>> = {}
+    ) {
+      return {
+        fen: 'mock-fen',
+        turn: 'w' as const,
+        status: GameStatus.InProgress,
+        isGameOver: false,
+        players: createPlayers(false),
+        pgn: '',
+        history: [],
+        ...overrides
+      }
+    }
+
+    it('returns false when the game is over', () => {
+      expect(canDragPiece(buildSnapshot({ isGameOver: true }), 'w')).toBe(false)
+    })
+
+    it('returns false when the color is not the side to move', () => {
+      expect(canDragPiece(buildSnapshot({ turn: 'w' }), 'b')).toBe(false)
+    })
+
+    it('returns true for a local-human side to move', () => {
+      expect(canDragPiece(buildSnapshot({ turn: 'w' }), 'w')).toBe(true)
+    })
+
+    it('returns false for a non-local-human side to move', () => {
+      const players = createPlayers(true)
+
+      expect(canDragPiece(buildSnapshot({ turn: 'b', players }), 'b')).toBe(
+        false
+      )
     })
   })
 

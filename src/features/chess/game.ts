@@ -28,6 +28,29 @@ export type GameSnapshot = {
 
 type Listener = () => void
 
+export function canDragPiece(snapshot: GameSnapshot, color: Color): boolean {
+  if (snapshot.isGameOver) return false
+
+  if (color !== snapshot.turn) return false
+
+  return snapshot.players[color].kind === PlayerKind.LocalHuman
+}
+
+export function statusText(snapshot: GameSnapshot, turnPlayer: Player): string {
+  switch (snapshot.status) {
+    case GameStatus.Checkmate:
+      return `Checkmate — ${turnPlayer.name} has no legal moves`
+    case GameStatus.Stalemate:
+      return 'Draw by stalemate'
+    case GameStatus.Draw:
+      return 'Draw'
+    case GameStatus.Check:
+      return `${turnPlayer.name} is in check`
+    default:
+      return `${turnPlayer.name} to move`
+  }
+}
+
 export function createPlayers(vsComputer: boolean): Record<Color, Player> {
   return {
     w: { id: 'player-1', name: 'Player 1', kind: PlayerKind.LocalHuman },

@@ -1,6 +1,6 @@
 export enum PlayerKind {
   LocalHuman = 'local-human',
-  RemoteHuman = 'remote-human', // TODO — not implemented
+  RemoteHuman = 'remote-human',
   Computer = 'computer'
 }
 
