@@ -28,10 +28,12 @@ export type GameSnapshot = {
 
 type Listener = () => void
 
-export function createDefaultPlayers(): Record<Color, Player> {
+export function createPlayers(vsComputer: boolean): Record<Color, Player> {
   return {
     w: { id: 'player-1', name: 'Player 1', kind: PlayerKind.LocalHuman },
-    b: { id: 'player-2', name: 'Player 2', kind: PlayerKind.LocalHuman }
+    b: vsComputer
+      ? { id: 'computer', name: 'Computer', kind: PlayerKind.Computer }
+      : { id: 'player-2', name: 'Player 2', kind: PlayerKind.LocalHuman }
   }
 }
 

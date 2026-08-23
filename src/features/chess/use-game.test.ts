@@ -1,17 +1,19 @@
 vi.mock('./game', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./game')>()
-  return { ...actual, Game: vi.fn(), createDefaultPlayers: vi.fn() }
+  return { ...actual, Game: vi.fn(), createPlayers: vi.fn() }
 })
+vi.mock('./stockfish-engine', () => ({ createStockfishEngine: vi.fn() }))
 
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import {
   Game,
-  createDefaultPlayers,
+  createPlayers,
   GameStatus,
   PromotionPiece,
   type GameSnapshot
 } from './game'
 import { PlayerKind, type Player } from './players'
+import { createStockfishEngine, type StockfishEngine } from './stockfish-engine'
 import { useGame } from './use-game'
 
 function buildPlayers(): Record<'w' | 'b', Player> {
@@ -43,6 +45,16 @@ function createMockGameInstance(snapshot: GameSnapshot) {
   }
 }
 
+function createMockEngine(): {
+  getBestMove: ReturnType<typeof vi.fn>
+  terminate: ReturnType<typeof vi.fn>
+} {
+  return {
+    getBestMove: vi.fn().mockResolvedValue({ from: 'e7', to: 'e5' }),
+    terminate: vi.fn()
+  }
+}
+
 describe('useGame', () => {
   let snapshot: GameSnapshot
   let mockGameInstance: ReturnType<typeof createMockGameInstance>
@@ -54,11 +66,11 @@ describe('useGame', () => {
     vi.mocked(Game).mockImplementation(
       () => mockGameInstance as unknown as Game
     )
-    vi.mocked(createDefaultPlayers).mockReturnValue(snapshot.players)
+    vi.mocked(createPlayers).mockReturnValue(snapshot.players)
   })
 
   it('constructs exactly one Game instance across re-renders', () => {
-    const { rerender } = renderHook(() => useGame())
+    const { rerender } = renderHook(() => useGame(false))
 
     rerender()
     rerender()
@@ -67,14 +79,14 @@ describe('useGame', () => {
   })
 
   it('exposes the snapshot from the Game instance', () => {
-    const { result } = renderHook(() => useGame())
+    const { result } = renderHook(() => useGame(false))
 
     expect(result.current.snapshot).toBe(snapshot)
   })
 
   describe('onPieceDrop', () => {
     it('returns false without submitting a move when targetSquare is null', () => {
-      const { result } = renderHook(() => useGame())
+      const { result } = renderHook(() => useGame(false))
 
       let dropResult: boolean | undefined
       act(() => {
@@ -90,7 +102,7 @@ describe('useGame', () => {
     })
 
     it('derives the color from pieceType and submits with a queen promotion default', () => {
-      const { result } = renderHook(() => useGame())
+      const { result } = renderHook(() => useGame(false))
 
       act(() => {
         result.current.onPieceDrop({
@@ -109,7 +121,7 @@ describe('useGame', () => {
 
     it('returns whatever submitMove reports', () => {
       mockGameInstance.submitMove.mockReturnValue(false)
-      const { result } = renderHook(() => useGame())
+      const { result } = renderHook(() => useGame(false))
 
       let dropResult: boolean | undefined
       act(() => {
@@ -127,7 +139,7 @@ describe('useGame', () => {
   describe('canDragPiece', () => {
     it('returns false when the game is over', () => {
       snapshot.isGameOver = true
-      const { result } = renderHook(() => useGame())
+      const { result } = renderHook(() => useGame(false))
 
       expect(
         result.current.canDragPiece({
@@ -139,7 +151,7 @@ describe('useGame', () => {
     })
 
     it('returns false when the piece color does not match the side to move', () => {
-      const { result } = renderHook(() => useGame())
+      const { result } = renderHook(() => useGame(false))
 
       expect(
         result.current.canDragPiece({
@@ -151,7 +163,7 @@ describe('useGame', () => {
     })
 
     it('returns true for the local-human side to move', () => {
-      const { result } = renderHook(() => useGame())
+      const { result } = renderHook(() => useGame(false))
 
       expect(
         result.current.canDragPiece({
@@ -163,13 +175,152 @@ describe('useGame', () => {
     })
   })
 
-  it('newGame resets the Game with freshly created default players', () => {
-    const { result } = renderHook(() => useGame())
+  it('newGame resets the Game with freshly created players for the current mode', () => {
+    const { result } = renderHook(() => useGame(true))
 
     act(() => {
       result.current.newGame()
     })
 
+    expect(createPlayers).toHaveBeenCalledWith(true)
     expect(mockGameInstance.reset).toHaveBeenCalledWith(snapshot.players)
+  })
+
+  describe('computer opponent', () => {
+    it('does not create an engine when the side to move is a local human', () => {
+      const { unmount } = renderHook(() => useGame(false))
+
+      unmount()
+
+      expect(createStockfishEngine).not.toHaveBeenCalled()
+    })
+
+    it('does not create an engine when the game is already over', () => {
+      snapshot.isGameOver = true
+      snapshot.turn = 'b'
+      snapshot.players.b = {
+        id: 'computer',
+        name: 'Computer',
+        kind: PlayerKind.Computer
+      }
+
+      renderHook(() => useGame(true))
+
+      expect(createStockfishEngine).not.toHaveBeenCalled()
+    })
+
+    it("asks the engine for a move and submits it on the computer's turn", async () => {
+      const mockEngine = createMockEngine()
+      vi.mocked(createStockfishEngine).mockReturnValue(
+        mockEngine as unknown as StockfishEngine
+      )
+      snapshot.turn = 'b'
+      snapshot.players.b = {
+        id: 'computer',
+        name: 'Computer',
+        kind: PlayerKind.Computer
+      }
+
+      renderHook(() => useGame(true))
+
+      await waitFor(() => {
+        expect(mockGameInstance.submitMove).toHaveBeenCalledWith('b', {
+          from: 'e7',
+          to: 'e5'
+        })
+      })
+    })
+
+    it('reuses the same engine instance across multiple computer turns', async () => {
+      const mockEngine = createMockEngine()
+      vi.mocked(createStockfishEngine).mockReturnValue(
+        mockEngine as unknown as StockfishEngine
+      )
+      snapshot.turn = 'b'
+      snapshot.players.b = {
+        id: 'computer',
+        name: 'Computer',
+        kind: PlayerKind.Computer
+      }
+
+      const { rerender } = renderHook(() => useGame(true))
+      await waitFor(() => {
+        expect(mockEngine.getBestMove).toHaveBeenCalledTimes(1)
+      })
+
+      snapshot = buildSnapshot({
+        turn: 'b',
+        players: {
+          ...buildPlayers(),
+          b: { id: 'computer', name: 'Computer', kind: PlayerKind.Computer }
+        }
+      })
+      mockGameInstance.getSnapshot.mockReturnValue(snapshot)
+      rerender()
+
+      await waitFor(() => {
+        expect(mockEngine.getBestMove).toHaveBeenCalledTimes(2)
+      })
+      expect(createStockfishEngine).toHaveBeenCalledTimes(1)
+    })
+
+    it('ignores a stale engine response once the game has moved on', async () => {
+      let resolveMove: (move: { from: string; to: string }) => void = () => {}
+      const mockEngine = {
+        getBestMove: vi.fn(
+          () =>
+            new Promise((resolve) => {
+              resolveMove = resolve
+            })
+        ),
+        terminate: vi.fn()
+      }
+      vi.mocked(createStockfishEngine).mockReturnValue(
+        mockEngine as unknown as StockfishEngine
+      )
+      snapshot.turn = 'b'
+      snapshot.players.b = {
+        id: 'computer',
+        name: 'Computer',
+        kind: PlayerKind.Computer
+      }
+
+      const { rerender } = renderHook(() => useGame(true))
+      await waitFor(() => {
+        expect(mockEngine.getBestMove).toHaveBeenCalledTimes(1)
+      })
+
+      snapshot = buildSnapshot()
+      mockGameInstance.getSnapshot.mockReturnValue(snapshot)
+      rerender()
+
+      resolveMove({ from: 'e7', to: 'e5' })
+      await Promise.resolve()
+      await Promise.resolve()
+
+      expect(mockGameInstance.submitMove).not.toHaveBeenCalled()
+    })
+
+    it('terminates the engine on unmount', async () => {
+      const mockEngine = createMockEngine()
+      vi.mocked(createStockfishEngine).mockReturnValue(
+        mockEngine as unknown as StockfishEngine
+      )
+      snapshot.turn = 'b'
+      snapshot.players.b = {
+        id: 'computer',
+        name: 'Computer',
+        kind: PlayerKind.Computer
+      }
+
+      const { unmount } = renderHook(() => useGame(true))
+      await waitFor(() => {
+        expect(mockEngine.getBestMove).toHaveBeenCalled()
+      })
+
+      unmount()
+
+      expect(mockEngine.terminate).toHaveBeenCalled()
+    })
   })
 })

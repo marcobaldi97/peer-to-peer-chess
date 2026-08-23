@@ -1,17 +1,12 @@
 vi.mock('./game', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./game')>()
-  return { ...actual, Game: vi.fn(), createDefaultPlayers: vi.fn() }
+  return { ...actual, Game: vi.fn(), createPlayers: vi.fn() }
 })
 vi.mock('react-chessboard', () => ({ Chessboard: vi.fn(() => null) }))
 
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Chessboard } from 'react-chessboard'
-import {
-  Game,
-  createDefaultPlayers,
-  GameStatus,
-  type GameSnapshot
-} from './game'
+import { Game, createPlayers, GameStatus, type GameSnapshot } from './game'
 import { PlayerKind, type Player } from './players'
 import ChessGame, { statusText } from './index'
 
@@ -70,7 +65,7 @@ describe('<ChessGame />', () => {
     vi.mocked(Game).mockImplementation(
       () => mockGameInstance as unknown as Game
     )
-    vi.mocked(createDefaultPlayers).mockReturnValue(players)
+    vi.mocked(createPlayers).mockReturnValue(players)
   })
 
   it('renders the status line for the side to move', () => {
@@ -99,5 +94,29 @@ describe('<ChessGame />', () => {
     fireEvent.click(screen.getByRole('button', { name: /new game/i }))
 
     expect(mockGameInstance.reset).toHaveBeenCalledWith(players)
+  })
+
+  it('renders the "play against computer" checkbox unchecked by default', () => {
+    render(<ChessGame />)
+
+    expect(
+      screen.getByRole('checkbox', { name: /play against computer/i })
+    ).not.toBeChecked()
+  })
+
+  it('checking the box and starting a new game creates computer players', () => {
+    render(<ChessGame />)
+
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /play against computer/i })
+    )
+
+    expect(
+      screen.getByRole('checkbox', { name: /play against computer/i })
+    ).toBeChecked()
+
+    fireEvent.click(screen.getByRole('button', { name: /new game/i }))
+
+    expect(createPlayers).toHaveBeenLastCalledWith(true)
   })
 })

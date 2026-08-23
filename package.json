@@ -18,13 +18,15 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "lint": "eslint src e2e --max-warnings=0",
-    "typecheck": "tsc --project tsconfig.json --noEmit"
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "postinstall": "node scripts/sync-stockfish.mjs"
   },
   "dependencies": {
     "chess.js": "^1.4.0",
     "react": "^19.2.8",
     "react-chessboard": "^5.12.0",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "stockfish": "^18.0.8"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

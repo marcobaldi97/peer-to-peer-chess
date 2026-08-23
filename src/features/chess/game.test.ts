@@ -1,7 +1,8 @@
 vi.mock('chess.js', () => ({ Chess: vi.fn() }))
 
 import { Chess } from 'chess.js'
-import { Game, GameStatus, PromotionPiece, createDefaultPlayers } from './game'
+import { Game, GameStatus, PromotionPiece, createPlayers } from './game'
+import { PlayerKind } from './players'
 
 function createMockChess(overrides: Record<string, unknown> = {}) {
   return {
@@ -28,9 +29,29 @@ beforeEach(() => {
   )
 })
 
+describe('createPlayers', () => {
+  it('returns two local-human players when vsComputer is false', () => {
+    const players = createPlayers(false)
+
+    expect(players.w.kind).toBe(PlayerKind.LocalHuman)
+    expect(players.b.kind).toBe(PlayerKind.LocalHuman)
+  })
+
+  it('returns a computer player for black when vsComputer is true', () => {
+    const players = createPlayers(true)
+
+    expect(players.w.kind).toBe(PlayerKind.LocalHuman)
+    expect(players.b).toEqual({
+      id: 'computer',
+      name: 'Computer',
+      kind: PlayerKind.Computer
+    })
+  })
+})
+
 describe('Game', () => {
   it('computes an in-progress snapshot from a fresh chess.js instance', () => {
-    const players = createDefaultPlayers()
+    const players = createPlayers(false)
     const game = new Game(players)
 
     expect(game.getSnapshot()).toEqual({
@@ -47,7 +68,7 @@ describe('Game', () => {
   it('reports Check when chess.js reports check only', () => {
     currentMockChess.isCheck.mockReturnValue(true)
 
-    expect(new Game(createDefaultPlayers()).getSnapshot().status).toBe(
+    expect(new Game(createPlayers(false)).getSnapshot().status).toBe(
       GameStatus.Check
     )
   })
@@ -56,7 +77,7 @@ describe('Game', () => {
     currentMockChess.isCheckmate.mockReturnValue(true)
     currentMockChess.isCheck.mockReturnValue(true)
 
-    expect(new Game(createDefaultPlayers()).getSnapshot().status).toBe(
+    expect(new Game(createPlayers(false)).getSnapshot().status).toBe(
       GameStatus.Checkmate
     )
   })
@@ -64,7 +85,7 @@ describe('Game', () => {
   it('reports Stalemate', () => {
     currentMockChess.isStalemate.mockReturnValue(true)
 
-    expect(new Game(createDefaultPlayers()).getSnapshot().status).toBe(
+    expect(new Game(createPlayers(false)).getSnapshot().status).toBe(
       GameStatus.Stalemate
     )
   })
@@ -72,7 +93,7 @@ describe('Game', () => {
   it('reports Draw', () => {
     currentMockChess.isDraw.mockReturnValue(true)
 
-    expect(new Game(createDefaultPlayers()).getSnapshot().status).toBe(
+    expect(new Game(createPlayers(false)).getSnapshot().status).toBe(
       GameStatus.Draw
     )
   })
@@ -80,13 +101,13 @@ describe('Game', () => {
   it('exposes isGameOver directly from chess.isGameOver()', () => {
     currentMockChess.isGameOver.mockReturnValue(true)
 
-    expect(new Game(createDefaultPlayers()).getSnapshot().isGameOver).toBe(true)
+    expect(new Game(createPlayers(false)).getSnapshot().isGameOver).toBe(true)
   })
 
   describe('submitMove', () => {
     it('returns false and does not call chess.move when the game is already over', () => {
       currentMockChess.isGameOver.mockReturnValue(true)
-      const game = new Game(createDefaultPlayers())
+      const game = new Game(createPlayers(false))
 
       expect(game.submitMove('w', { from: 'e2', to: 'e4' })).toBe(false)
       expect(currentMockChess.move).not.toHaveBeenCalled()
@@ -94,14 +115,14 @@ describe('Game', () => {
 
     it("returns false when it is not the given color's turn", () => {
       currentMockChess.turn.mockReturnValue('w')
-      const game = new Game(createDefaultPlayers())
+      const game = new Game(createPlayers(false))
 
       expect(game.submitMove('b', { from: 'e7', to: 'e5' })).toBe(false)
       expect(currentMockChess.move).not.toHaveBeenCalled()
     })
 
     it('applies a legal move, defaults promotion to Queen, and notifies subscribers', () => {
-      const game = new Game(createDefaultPlayers())
+      const game = new Game(createPlayers(false))
       const listener = vi.fn()
       game.subscribe(listener)
 
@@ -117,7 +138,7 @@ describe('Game', () => {
     })
 
     it('passes through an explicit promotion piece', () => {
-      new Game(createDefaultPlayers()).submitMove('w', {
+      new Game(createPlayers(false)).submitMove('w', {
         from: 'a7',
         to: 'a8',
         promotion: PromotionPiece.Knight
@@ -134,7 +155,7 @@ describe('Game', () => {
       currentMockChess.move.mockImplementation(() => {
         throw new Error('Invalid move')
       })
-      const game = new Game(createDefaultPlayers())
+      const game = new Game(createPlayers(false))
       const listener = vi.fn()
       game.subscribe(listener)
 
@@ -145,7 +166,7 @@ describe('Game', () => {
 
   describe('subscribe', () => {
     it('stops notifying a listener after it unsubscribes', () => {
-      const game = new Game(createDefaultPlayers())
+      const game = new Game(createPlayers(false))
       const listener = vi.fn()
       const unsubscribe = game.subscribe(listener)
 
@@ -160,7 +181,7 @@ describe('Game', () => {
 
   describe('reset', () => {
     it('without arguments keeps the existing players and creates a fresh chess.js instance', () => {
-      const players = createDefaultPlayers()
+      const players = createPlayers(false)
       const game = new Game(players)
       const callsBefore = vi.mocked(Chess).mock.calls.length
 
@@ -171,8 +192,8 @@ describe('Game', () => {
     })
 
     it('replaces the players when given new ones', () => {
-      const game = new Game(createDefaultPlayers())
-      const newPlayers = createDefaultPlayers()
+      const game = new Game(createPlayers(false))
+      const newPlayers = createPlayers(false)
 
       game.reset(newPlayers)
 

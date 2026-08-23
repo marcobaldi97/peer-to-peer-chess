@@ -7,6 +7,9 @@ dist-ssr
 /.pnp
 .pnp.js
 
+# generated engine assets (copied from node_modules/stockfish by postinstall)
+/public/stockfish/
+
 # testing
 /coverage
 /test-results/

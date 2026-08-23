@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { classNames } from 'utils'
 import { GameStatus, type GameSnapshot } from './game'
@@ -20,7 +21,8 @@ export function statusText(snapshot: GameSnapshot, turnPlayer: Player): string {
 }
 
 export default function ChessGame() {
-  const { snapshot, onPieceDrop, canDragPiece, newGame } = useGame()
+  const [vsComputer, setVsComputer] = useState(false)
+  const { snapshot, onPieceDrop, canDragPiece, newGame } = useGame(vsComputer)
   const turnPlayer = snapshot.players[snapshot.turn]
 
   return (
@@ -42,6 +44,15 @@ export default function ChessGame() {
           }}
         />
       </div>
+
+      <label className="flex items-center gap-2 text-sm text-gray-700">
+        <input
+          type="checkbox"
+          checked={vsComputer}
+          onChange={(event) => setVsComputer(event.target.checked)}
+        />
+        Play against computer
+      </label>
 
       <button
         type="button"
