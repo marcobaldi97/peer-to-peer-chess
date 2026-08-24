@@ -19,6 +19,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "lint": "eslint src e2e --max-warnings=0",
+    "lint:fix": "pnpm lint --fix",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "postinstall": "node scripts/sync-stockfish.mjs"
   },
