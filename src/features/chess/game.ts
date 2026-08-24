@@ -37,17 +37,19 @@ export function canDragPiece(snapshot: GameSnapshot, color: Color): boolean {
 }
 
 export function statusText(snapshot: GameSnapshot, turnPlayer: Player): string {
+  const isYou = turnPlayer.name === 'You'
+
   switch (snapshot.status) {
     case GameStatus.Checkmate:
-      return `Checkmate — ${turnPlayer.name} has no legal moves`
+      return `Checkmate — ${turnPlayer.name} ${isYou ? 'have' : 'has'} no legal moves`
     case GameStatus.Stalemate:
       return 'Draw by stalemate'
     case GameStatus.Draw:
       return 'Draw'
     case GameStatus.Check:
-      return `${turnPlayer.name} is in check`
+      return `${turnPlayer.name} ${isYou ? 'are' : 'is'} in check`
     default:
-      return `${turnPlayer.name} to move`
+      return isYou ? 'You are to move' : `${turnPlayer.name} to move`
   }
 }
 

@@ -85,7 +85,7 @@ describe('<OnlineChessGame />', () => {
 
     fireEvent.click(screen.getByText('connect'))
 
-    expect(screen.getByTestId('game-status')).toHaveTextContent('You to move')
+    expect(screen.getByTestId('game-status')).toHaveTextContent('You are to move')
     expect(useNetGame).toHaveBeenCalledWith(connection, 'w')
   })
 

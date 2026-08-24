@@ -67,6 +67,16 @@ describe('statusText', () => {
   ])('formats %s', (status, expected) => {
     expect(statusText(buildSnapshot({ status }), player)).toBe(expected)
   })
+
+  const you: Player = { id: 'you', name: 'You', kind: PlayerKind.LocalHuman }
+
+  it.each([
+    [GameStatus.Checkmate, 'Checkmate — You have no legal moves'],
+    [GameStatus.Check, 'You are in check'],
+    [GameStatus.InProgress, 'You are to move']
+  ])('uses second-person grammar for %s when the player is "You"', (status, expected) => {
+    expect(statusText(buildSnapshot({ status }), you)).toBe(expected)
+  })
 })
 
 describe('<ChessGame />', () => {
