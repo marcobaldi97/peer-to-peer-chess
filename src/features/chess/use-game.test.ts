@@ -3,8 +3,10 @@ vi.mock('./game', async (importOriginal) => {
   return { ...actual, Game: vi.fn(), createPlayers: vi.fn() }
 })
 vi.mock('./stockfish-engine', () => ({ createStockfishEngine: vi.fn() }))
+vi.mock('react-sounds', () => ({ playSound: vi.fn() }))
 
 import { renderHook, act, waitFor } from '@testing-library/react'
+import { playSound } from 'react-sounds'
 import {
   Game,
   createPlayers,
@@ -133,6 +135,35 @@ describe('useGame', () => {
       })
 
       expect(dropResult).toBe(false)
+    })
+
+    it('plays a blocked sound when submitMove rejects the move', () => {
+      mockGameInstance.submitMove.mockReturnValue(false)
+      const { result } = renderHook(() => useGame(false))
+
+      act(() => {
+        result.current.onPieceDrop({
+          piece: { isSparePiece: false, pieceType: 'wP', position: 'e2' },
+          sourceSquare: 'e2',
+          targetSquare: 'e4'
+        })
+      })
+
+      expect(playSound).toHaveBeenCalledWith('ui/blocked')
+    })
+
+    it('does not play a blocked sound when the move succeeds', () => {
+      const { result } = renderHook(() => useGame(false))
+
+      act(() => {
+        result.current.onPieceDrop({
+          piece: { isSparePiece: false, pieceType: 'wP', position: 'e2' },
+          sourceSquare: 'e2',
+          targetSquare: 'e4'
+        })
+      })
+
+      expect(playSound).not.toHaveBeenCalled()
     })
   })
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import type { Square, Color } from 'chess.js'
 import type { PieceDropHandlerArgs, PieceHandlerArgs } from 'react-chessboard'
+import { playSound } from 'react-sounds'
 import {
   Game,
   canDragPiece as canPlayerDragPiece,
@@ -69,6 +70,7 @@ export function useNetGame(
       const applied = game.submitMove(color, move)
 
       if (applied) connection.sendMove(move)
+      else playSound('ui/blocked')
 
       return applied
     },

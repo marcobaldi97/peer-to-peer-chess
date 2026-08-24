@@ -2,8 +2,10 @@ vi.mock('./game', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./game')>()
   return { ...actual, Game: vi.fn() }
 })
+vi.mock('react-sounds', () => ({ playSound: vi.fn() }))
 
 import { renderHook, act } from '@testing-library/react'
+import { playSound } from 'react-sounds'
 import { Game, GameStatus, PromotionPiece, type GameSnapshot } from './game'
 import { PlayerKind, type Player } from './players'
 import type { PeerConnection } from './peer-connection'
@@ -191,6 +193,23 @@ describe('useNetGame', () => {
       })
 
       expect(connection.sendMove).not.toHaveBeenCalled()
+    })
+
+    it('plays a blocked sound when the local submit fails', () => {
+      mockGameInstance.submitMove.mockReturnValue(false)
+      const { result } = renderHook(() =>
+        useNetGame(connection as unknown as PeerConnection, 'w')
+      )
+
+      act(() => {
+        result.current.onPieceDrop({
+          piece: { isSparePiece: false, pieceType: 'bP', position: 'e7' },
+          sourceSquare: 'e7',
+          targetSquare: 'e5'
+        })
+      })
+
+      expect(playSound).toHaveBeenCalledWith('ui/blocked')
     })
   })
 

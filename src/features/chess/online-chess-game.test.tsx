@@ -1,6 +1,7 @@
 vi.mock('./online-lobby', () => ({ default: vi.fn() }))
 vi.mock('./use-net-game', () => ({ useNetGame: vi.fn() }))
 vi.mock('react-chessboard', () => ({ Chessboard: vi.fn(() => null) }))
+vi.mock('react-sounds', () => ({ playSound: vi.fn() }))
 
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Chessboard } from 'react-chessboard'

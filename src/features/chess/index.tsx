@@ -1,6 +1,11 @@
 import { useState } from 'react'
 import { Chessboard, ChessboardOptions } from 'react-chessboard'
 import { Volume2, VolumeX } from 'lucide-react'
+import {
+  SoundProvider,
+  useSoundEnabled,
+  type LibrarySoundName
+} from 'react-sounds'
 import { Button } from 'components/ui/button'
 import {
   SegmentedControl,
@@ -10,7 +15,17 @@ import SiteFooter from 'components/site-footer'
 import logo from 'assets/logo.png'
 import { GameStatus, statusText } from './game'
 import { useGame } from './use-game'
+import { usePieceSounds } from './use-piece-sounds'
 import OnlineChessGame from './online-chess-game'
+
+const preloadSounds: LibrarySoundName[] = [
+  'ui/button_soft',
+  'ui/blocked',
+  'game/hit',
+  'notification/success',
+  'notification/warning',
+  'notification/info'
+]
 
 export { statusText }
 
@@ -29,6 +44,7 @@ const squareStyles: Partial<ChessboardOptions> = {
 
 function LocalChessGame({ vsComputer }: { vsComputer: boolean }) {
   const { snapshot, onPieceDrop, canDragPiece, newGame } = useGame(vsComputer)
+  usePieceSounds(snapshot)
   const turnPlayer = snapshot.players[snapshot.turn]
 
   return (
@@ -96,9 +112,9 @@ function LocalChessGame({ vsComputer }: { vsComputer: boolean }) {
   )
 }
 
-export default function ChessGame() {
+function ChessGameContent() {
   const [mode, setMode] = useState<Mode>('local')
-  const [soundOn, setSoundOn] = useState(true)
+  const [soundOn, setSoundOn] = useSoundEnabled()
 
   const soundToggle = (size: 'icon' | 'icon-lg') => (
     <Button
@@ -107,7 +123,7 @@ export default function ChessGame() {
       size={size}
       aria-label="Toggle sound"
       aria-pressed={soundOn}
-      onClick={() => setSoundOn((value) => !value)}
+      onClick={() => setSoundOn(!soundOn)}
     >
       {soundOn ? (
         <Volume2 className="h-[18px] w-[18px]" />
@@ -154,5 +170,13 @@ export default function ChessGame() {
 
       <SiteFooter />
     </>
+  )
+}
+
+export default function ChessGame() {
+  return (
+    <SoundProvider preload={preloadSounds}>
+      <ChessGameContent />
+    </SoundProvider>
   )
 }
