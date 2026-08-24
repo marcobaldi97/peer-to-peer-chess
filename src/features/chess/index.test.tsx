@@ -15,10 +15,11 @@ vi.mock('react-sounds', async () => {
   }
 })
 
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen, fireEvent, within, act } from '@testing-library/react'
 import { Chessboard } from 'react-chessboard'
 import { Game, createPlayers, GameStatus, type GameSnapshot } from './game'
 import { PlayerKind, type Player } from './players'
+import OnlineChessGame from './online-chess-game'
 import ChessGame, { statusText } from './index'
 
 function buildPlayers(): Record<'w' | 'b', Player> {
@@ -195,6 +196,28 @@ describe('<ChessGame />', () => {
 
       expect(screen.getByTestId('active-player')).toBeInTheDocument()
       expect(screen.queryByText('online chess game')).not.toBeInTheDocument()
+    })
+
+    it('starts on Online mode and forwards invitePeerId when given', () => {
+      const onInviteSettled = vi.fn()
+      render(
+        <ChessGame invitePeerId="abc123" onInviteSettled={onInviteSettled} />
+      )
+
+      expect(
+        desktopNav().getByRole('radio', { name: /^online$/i })
+      ).toBeChecked()
+      expect(screen.getByText('online chess game')).toBeInTheDocument()
+      expect(vi.mocked(OnlineChessGame).mock.calls[0][0]).toMatchObject({
+        invitePeerId: 'abc123'
+      })
+
+      act(
+        () =>
+          vi.mocked(OnlineChessGame).mock.calls[0][0].onInviteSettled?.(true)
+      )
+
+      expect(onInviteSettled).toHaveBeenCalledWith(true)
     })
   })
 

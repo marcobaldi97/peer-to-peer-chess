@@ -1,4 +1,5 @@
-import ChessGame from 'features/chess'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HomePage, JoinPage } from 'features/chess/pages'
 import { Agentation } from 'agentation'
 
 function App() {
@@ -13,7 +14,13 @@ function App() {
         />
       )}
       <div className="flex min-h-screen flex-col bg-bg font-body text-text">
-        <ChessGame />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/join/:peerId" element={<JoinPage />} />
+            <Route path="*" element={<HomePage />} />
+          </Routes>
+        </BrowserRouter>
       </div>
     </>
   )

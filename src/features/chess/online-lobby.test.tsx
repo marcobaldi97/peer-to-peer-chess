@@ -63,7 +63,7 @@ describe('<OnlineLobby />', () => {
   })
 
   describe('creating a game', () => {
-    it('calls hostGame and shows the share code once the peer opens', () => {
+    it('calls hostGame and shows the share link once the peer opens', () => {
       const { connection, setSnapshot } = createFakeConnection()
       vi.mocked(hostGame).mockReturnValue(connection)
       render(<OnlineLobby onConnected={vi.fn()} />)
@@ -76,13 +76,16 @@ describe('<OnlineLobby />', () => {
         setSnapshot({ status: ConnectionStatus.Waiting, localPeerId: 'abc123' })
       )
 
-      expect(screen.getByText('abc123')).toBeInTheDocument()
+      expect(screen.getByTestId('invite-link')).toHaveTextContent(
+        /\/join\/abc123$/
+      )
+      expect(screen.getByText(/Or share this code: abc123/)).toBeInTheDocument()
       expect(screen.getByTestId('connection-status')).toHaveTextContent(
         'Waiting for your opponent to join'
       )
     })
 
-    it('copies the code to the clipboard', () => {
+    it('copies the invite link to the clipboard', () => {
       const { connection, setSnapshot } = createFakeConnection()
       vi.mocked(hostGame).mockReturnValue(connection)
       render(<OnlineLobby onConnected={vi.fn()} />)
@@ -91,9 +94,11 @@ describe('<OnlineLobby />', () => {
       act(() =>
         setSnapshot({ status: ConnectionStatus.Waiting, localPeerId: 'abc123' })
       )
-      fireEvent.click(screen.getByRole('button', { name: /copy code/i }))
+      fireEvent.click(screen.getByRole('button', { name: /copy invite link/i }))
 
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('abc123')
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining('/join/abc123')
+      )
     })
 
     it('calls onConnected with the host connection and White once connected', () => {
@@ -236,6 +241,93 @@ describe('<OnlineLobby />', () => {
       expect(screen.getByTestId('connection-status')).toHaveTextContent(
         'Connection failed.'
       )
+    })
+  })
+
+  describe('auto-joining from an invite link', () => {
+    it('does not call joinGame when no autoJoinPeerId is given', () => {
+      render(<OnlineLobby onConnected={vi.fn()} />)
+
+      expect(joinGame).not.toHaveBeenCalled()
+      expect(
+        screen.getByRole('button', { name: /create game/i })
+      ).toBeInTheDocument()
+    })
+
+    it('joins automatically without requiring a button click', () => {
+      const { connection } = createFakeConnection()
+      vi.mocked(joinGame).mockReturnValue(connection)
+      render(<OnlineLobby onConnected={vi.fn()} autoJoinPeerId="xyz789" />)
+
+      expect(joinGame).toHaveBeenCalledTimes(1)
+      expect(joinGame).toHaveBeenCalledWith('xyz789')
+      expect(
+        screen.queryByRole('button', { name: /create game/i })
+      ).not.toBeInTheDocument()
+    })
+
+    it('calls onConnected and onAutoJoinSettled once connected', () => {
+      const { connection, setSnapshot } = createFakeConnection()
+      vi.mocked(joinGame).mockReturnValue(connection)
+      const onConnected = vi.fn()
+      const onAutoJoinSettled = vi.fn()
+      render(
+        <OnlineLobby
+          onConnected={onConnected}
+          autoJoinPeerId="xyz789"
+          onAutoJoinSettled={onAutoJoinSettled}
+        />
+      )
+
+      act(() => setSnapshot({ status: ConnectionStatus.Connected }))
+
+      expect(onConnected).toHaveBeenCalledWith(connection, 'b')
+      expect(onAutoJoinSettled).toHaveBeenCalledWith(true)
+    })
+
+    it('calls onAutoJoinSettled when cancelling an auto-join', () => {
+      const { connection, setSnapshot } = createFakeConnection()
+      vi.mocked(joinGame).mockReturnValue(connection)
+      const onAutoJoinSettled = vi.fn()
+      render(
+        <OnlineLobby
+          onConnected={vi.fn()}
+          autoJoinPeerId="xyz789"
+          onAutoJoinSettled={onAutoJoinSettled}
+        />
+      )
+      act(() => setSnapshot({ status: ConnectionStatus.Connecting }))
+
+      fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+
+      expect(connection.close).toHaveBeenCalledTimes(1)
+      expect(onAutoJoinSettled).toHaveBeenCalledWith(false)
+      expect(
+        screen.getByRole('button', { name: /create game/i })
+      ).toBeInTheDocument()
+    })
+
+    it('calls onAutoJoinSettled when retrying after a failed auto-join', () => {
+      const { connection, setSnapshot } = createFakeConnection()
+      vi.mocked(joinGame).mockReturnValue(connection)
+      const onAutoJoinSettled = vi.fn()
+      render(
+        <OnlineLobby
+          onConnected={vi.fn()}
+          autoJoinPeerId="xyz789"
+          onAutoJoinSettled={onAutoJoinSettled}
+        />
+      )
+      act(() =>
+        setSnapshot({
+          status: ConnectionStatus.Error,
+          errorMessage: 'peer unreachable'
+        })
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: /try again/i }))
+
+      expect(onAutoJoinSettled).toHaveBeenCalledWith(false)
     })
   })
 })
