@@ -100,9 +100,7 @@ test('resumes an in-progress Solo game after reloading the tab', async ({
   })
 })
 
-test('remembers the sound toggle after reloading the tab', async ({
-  page
-}) => {
+test('remembers the sound toggle after reloading the tab', async ({ page }) => {
   await page.goto('/')
 
   const soundToggle = page
