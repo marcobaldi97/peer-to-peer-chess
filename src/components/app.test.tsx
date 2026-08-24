@@ -1,3 +1,12 @@
+vi.mock('react-sounds', async () => {
+  const { useState } = await import('react')
+  return {
+    playSound: vi.fn(),
+    SoundProvider: ({ children }: { children: unknown }) => children,
+    useSoundEnabled: () => useState(true)
+  }
+})
+
 import { render, screen } from '@testing-library/react'
 
 import App from './app'

@@ -6,6 +6,14 @@ vi.mock('react-chessboard', () => ({ Chessboard: vi.fn(() => null) }))
 vi.mock('./online-chess-game', () => ({
   default: vi.fn(() => <div>online chess game</div>)
 }))
+vi.mock('react-sounds', async () => {
+  const { useState } = await import('react')
+  return {
+    playSound: vi.fn(),
+    SoundProvider: ({ children }: { children: unknown }) => children,
+    useSoundEnabled: () => useState(true)
+  }
+})
 
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { Chessboard } from 'react-chessboard'

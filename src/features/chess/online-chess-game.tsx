@@ -6,6 +6,7 @@ import { Button } from 'components/ui/button'
 import { statusText } from './game'
 import { ConnectionStatus, type PeerConnection } from './peer-connection'
 import { useNetGame } from './use-net-game'
+import { usePieceSounds } from './use-piece-sounds'
 import OnlineLobby from './online-lobby'
 
 type Session = { connection: PeerConnection; localColor: Color }
@@ -32,6 +33,7 @@ function NetworkChessBoard({
     connection,
     localColor
   )
+  usePieceSounds(snapshot)
   const turnPlayer = snapshot.players[snapshot.turn]
 
   // TODO: on reconnect, overwrite this side's game state from the host

@@ -7,6 +7,7 @@ import {
 } from 'react'
 import type { Square, Color } from 'chess.js'
 import type { PieceDropHandlerArgs, PieceHandlerArgs } from 'react-chessboard'
+import { playSound } from 'react-sounds'
 import {
   Game,
   createPlayers,
@@ -65,11 +66,15 @@ export function useGame(vsComputer: boolean): UseGameResult {
       const color = piece.pieceType.charAt(0) as Color
 
       // TODO: always promotes to Queen — needs a promotion-piece picker
-      return game.submitMove(color, {
+      const submitted = game.submitMove(color, {
         from: sourceSquare as Square,
         to: targetSquare as Square,
         promotion: PromotionPiece.Queen
       })
+
+      if (!submitted) playSound('ui/blocked')
+
+      return submitted
     },
     [game]
   )
