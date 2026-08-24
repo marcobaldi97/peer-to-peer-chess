@@ -5,7 +5,10 @@ import {
   type FormEvent
 } from 'react'
 import type { Color } from 'chess.js'
-import { classNames } from 'utils'
+import { Check, Copy } from 'lucide-react'
+import { cn } from 'lib/utils'
+import { Button } from 'components/ui/button'
+import { Input } from 'components/ui/input'
 import {
   ConnectionStatus,
   hostGame,
@@ -22,21 +25,13 @@ type LobbyView =
   | { kind: 'join-form' }
   | { kind: 'connecting'; connection: PeerConnection; localColor: Color }
 
-const buttonClassName = classNames(
-  'rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white',
-  'hover:bg-gray-700'
-)
-
 function statusMessage(snapshot: ReturnType<PeerConnection['getSnapshot']>): {
   isError: boolean
   text: string | null
 } {
   switch (snapshot.status) {
     case ConnectionStatus.Waiting:
-      return {
-        isError: false,
-        text: `Share this code: ${snapshot.localPeerId}`
-      }
+      return { isError: false, text: 'Waiting for your opponent to join…' }
     case ConnectionStatus.Connecting:
       return { isError: false, text: 'Connecting…' }
     case ConnectionStatus.Disconnected:
@@ -66,6 +61,7 @@ function ConnectingScreen({
     connection.subscribe,
     connection.getSnapshot
   )
+  const [codeCopied, setCodeCopied] = useState(false)
 
   useEffect(() => {
     if (snapshot.status === ConnectionStatus.Connected) {
@@ -77,24 +73,57 @@ function ConnectingScreen({
   const isTerminal =
     snapshot.status === ConnectionStatus.Disconnected ||
     snapshot.status === ConnectionStatus.Error
+  const isSharingCode = snapshot.status === ConnectionStatus.Waiting
+
+  const copyCode = (): void => {
+    navigator.clipboard.writeText(snapshot.localPeerId as string)
+    setCodeCopied(true)
+    setTimeout(() => setCodeCopied(false), 1500)
+  }
 
   return (
-    <div className="flex flex-col items-center gap-4 p-4">
+    <div className="mt-4 flex flex-col items-center gap-3 rounded border border-divider p-4 text-center shadow-board">
+      {isSharingCode && (
+        <>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-accent">
+            Share this code
+          </p>
+          <div className="flex w-full items-center gap-2">
+            <div className="flex h-9 flex-1 items-center justify-center rounded border border-divider font-heading text-xl tracking-wide">
+              {snapshot.localPeerId}
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              aria-label="Copy code"
+              onClick={copyCode}
+            >
+              {codeCopied ? (
+                <Check className="size-4" />
+              ) : (
+                <Copy className="size-4" />
+              )}
+            </Button>
+          </div>
+        </>
+      )}
+
       {text && (
         <p
           data-testid="connection-status"
-          className={classNames(
+          className={cn(
             'text-sm',
-            isError ? 'text-red-600' : 'text-gray-700'
+            isError ? 'text-accent-700' : 'text-text/55'
           )}
         >
           {text}
         </p>
       )}
 
-      <button type="button" onClick={onCancel} className={buttonClassName}>
+      <Button type="button" variant="secondary" size="block" onClick={onCancel}>
         {isTerminal ? 'Try again' : 'Cancel'}
-      </button>
+      </Button>
     </div>
   )
 }
@@ -134,48 +163,54 @@ export default function OnlineLobby({ onConnected }: OnlineLobbyProps) {
     return (
       <form
         onSubmit={handleJoinSubmit}
-        className="flex flex-col items-center gap-4 p-4"
+        className="flex flex-1 flex-col justify-center gap-4"
       >
-        <input
-          type="text"
-          value={joinId}
-          onChange={(event) => setJoinId(event.target.value)}
-          placeholder="Game code"
-          aria-label="Game code"
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-        />
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="join-code" className="text-xs text-text/70">
+            Game code
+          </label>
+          <Input
+            id="join-code"
+            value={joinId}
+            onChange={(event) => setJoinId(event.target.value)}
+            placeholder="e.g. 8F3A-91C2"
+          />
+        </div>
         <div className="flex gap-2">
-          <button type="submit" className={buttonClassName}>
-            Join
-          </button>
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="lg"
             onClick={() => setView({ kind: 'menu' })}
-            className={buttonClassName}
           >
             Back
-          </button>
+          </Button>
+          <Button type="submit" variant="primary" size="lg" className="flex-1">
+            Join
+          </Button>
         </div>
       </form>
     )
   }
 
   return (
-    <div className="flex flex-col items-center gap-4 p-4">
-      <button
+    <div className="flex flex-1 flex-col justify-center gap-3">
+      <Button
         type="button"
+        variant="primary"
+        size="block"
         onClick={handleCreateGame}
-        className={buttonClassName}
       >
         Create Game
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="secondary"
+        size="block"
         onClick={() => setView({ kind: 'join-form' })}
-        className={buttonClassName}
       >
         Join Game
-      </button>
+      </Button>
     </div>
   )
 }

@@ -45,6 +45,10 @@ function createFakeConnection(): {
 describe('<OnlineLobby />', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: vi.fn() },
+      configurable: true
+    })
   })
 
   it('renders the create/join menu by default', () => {
@@ -72,9 +76,24 @@ describe('<OnlineLobby />', () => {
         setSnapshot({ status: ConnectionStatus.Waiting, localPeerId: 'abc123' })
       )
 
+      expect(screen.getByText('abc123')).toBeInTheDocument()
       expect(screen.getByTestId('connection-status')).toHaveTextContent(
-        'Share this code: abc123'
+        'Waiting for your opponent to join'
       )
+    })
+
+    it('copies the code to the clipboard', () => {
+      const { connection, setSnapshot } = createFakeConnection()
+      vi.mocked(hostGame).mockReturnValue(connection)
+      render(<OnlineLobby onConnected={vi.fn()} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /create game/i }))
+      act(() =>
+        setSnapshot({ status: ConnectionStatus.Waiting, localPeerId: 'abc123' })
+      )
+      fireEvent.click(screen.getByRole('button', { name: /copy code/i }))
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('abc123')
     })
 
     it('calls onConnected with the host connection and White once connected', () => {

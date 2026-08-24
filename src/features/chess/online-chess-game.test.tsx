@@ -128,6 +128,23 @@ describe('<OnlineChessGame />', () => {
     )
   })
 
+  it('highlights black when it is their move', () => {
+    vi.mocked(useNetGame).mockReturnValue({
+      snapshot: buildSnapshot({ turn: 'b' }),
+      onPieceDrop: vi.fn(),
+      canDragPiece: vi.fn(),
+      newGame: vi.fn()
+    })
+    const connection = createFakeConnection()
+    mockLobbyToConnect(connection, 'w')
+    render(<OnlineChessGame />)
+
+    fireEvent.click(screen.getByText('connect'))
+
+    expect(screen.getByText('Opponent')).toHaveClass('text-accent-700')
+    expect(screen.getByText('You')).toHaveClass('text-text/45')
+  })
+
   it('does not show a connection banner while connected', () => {
     const connection = createFakeConnection()
     mockLobbyToConnect(connection, 'w')

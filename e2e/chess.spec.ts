@@ -39,15 +39,16 @@ function pieceOn(page: Page, square: string) {
 test('hot-seat chess enforces turn order and legal moves', async ({ page }) => {
   await test.step('starts with White to move and the standard position', async () => {
     await page.goto('/')
+    await page.getByRole('banner').getByText('Solo', { exact: true }).click()
 
-    await expect(page.getByTestId('game-status')).toHaveText('Player 1 to move')
+    await expect(page.getByTestId('active-player')).toHaveText('Whites')
     await expect(pieceOn(page, 'e2')).toBeVisible()
   })
 
   await test.step('White plays a legal move', async () => {
     await dragSquare(page, 'e2', 'e4')
 
-    await expect(page.getByTestId('game-status')).toHaveText('Player 2 to move')
+    await expect(page.getByTestId('active-player')).toHaveText('Blacks')
     await expect(pieceOn(page, 'e4')).toBeVisible()
     await expect(pieceOn(page, 'e2')).toHaveCount(0)
   })
@@ -55,21 +56,21 @@ test('hot-seat chess enforces turn order and legal moves', async ({ page }) => {
   await test.step('White cannot move again out of turn', async () => {
     await dragSquare(page, 'd2', 'd4')
 
-    await expect(page.getByTestId('game-status')).toHaveText('Player 2 to move')
+    await expect(page.getByTestId('active-player')).toHaveText('Blacks')
     await expect(pieceOn(page, 'd2')).toBeVisible()
   })
 
   await test.step('Black replies', async () => {
     await dragSquare(page, 'e7', 'e5')
 
-    await expect(page.getByTestId('game-status')).toHaveText('Player 1 to move')
+    await expect(page.getByTestId('active-player')).toHaveText('Whites')
     await expect(pieceOn(page, 'e5')).toBeVisible()
   })
 
   await test.step('New Game resets the board', async () => {
     await page.getByRole('button', { name: /new game/i }).click()
 
-    await expect(page.getByTestId('game-status')).toHaveText('Player 1 to move')
+    await expect(page.getByTestId('active-player')).toHaveText('Whites')
     await expect(pieceOn(page, 'e2')).toBeVisible()
     await expect(pieceOn(page, 'e4')).toHaveCount(0)
     await expect(pieceOn(page, 'e5')).toHaveCount(0)
