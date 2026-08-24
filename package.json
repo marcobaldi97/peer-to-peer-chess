@@ -46,6 +46,7 @@
     "@vitejs/plugin-react-swc": "^3.11.0",
     "@vitest/coverage-v8": "1.6.1",
     "@vitest/ui": "^1.6.1",
+    "agentation": "^3.0.2",
     "autoprefixer": "^10.4.27",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.2",
