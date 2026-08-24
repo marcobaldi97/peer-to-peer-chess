@@ -15,7 +15,7 @@ import {
   hostGame,
   joinGame,
   type PeerConnection
-} from './peer-connection'
+} from '../peer-connection'
 
 type OnlineLobbyProps = {
   onConnected: (connection: PeerConnection, localColor: Color) => void

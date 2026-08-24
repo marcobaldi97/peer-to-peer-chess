@@ -3,8 +3,8 @@ vi.mock('react-sounds', () => ({ playSound: vi.fn() }))
 import { renderHook } from '@testing-library/react'
 import { playSound } from 'react-sounds'
 import type { Move } from 'chess.js'
-import { GameStatus, type GameSnapshot } from './game'
-import { PlayerKind, type Player } from './players'
+import { GameStatus, type GameSnapshot } from '../game'
+import { PlayerKind, type Player } from '../players'
 import { usePieceSounds } from './use-piece-sounds'
 
 function buildPlayers(): Record<'w' | 'b', Player> {
@@ -45,9 +45,12 @@ describe('usePieceSounds', () => {
   })
 
   it('plays a move sound when a new, non-capturing move lands', () => {
-    const { rerender } = renderHook(({ snapshot }) => usePieceSounds(snapshot), {
-      initialProps: { snapshot: buildSnapshot() }
-    })
+    const { rerender } = renderHook(
+      ({ snapshot }) => usePieceSounds(snapshot),
+      {
+        initialProps: { snapshot: buildSnapshot() }
+      }
+    )
 
     rerender({ snapshot: buildSnapshot({ history: [buildMove()] }) })
 
@@ -55,9 +58,12 @@ describe('usePieceSounds', () => {
   })
 
   it('plays a capture sound when the new move captured a piece', () => {
-    const { rerender } = renderHook(({ snapshot }) => usePieceSounds(snapshot), {
-      initialProps: { snapshot: buildSnapshot() }
-    })
+    const { rerender } = renderHook(
+      ({ snapshot }) => usePieceSounds(snapshot),
+      {
+        initialProps: { snapshot: buildSnapshot() }
+      }
+    )
 
     rerender({
       snapshot: buildSnapshot({
@@ -69,9 +75,12 @@ describe('usePieceSounds', () => {
   })
 
   it('plays a success sound in addition to the move sound on checkmate', () => {
-    const { rerender } = renderHook(({ snapshot }) => usePieceSounds(snapshot), {
-      initialProps: { snapshot: buildSnapshot() }
-    })
+    const { rerender } = renderHook(
+      ({ snapshot }) => usePieceSounds(snapshot),
+      {
+        initialProps: { snapshot: buildSnapshot() }
+      }
+    )
 
     rerender({
       snapshot: buildSnapshot({
@@ -85,9 +94,12 @@ describe('usePieceSounds', () => {
   })
 
   it('plays an info sound on stalemate or draw', () => {
-    const { rerender } = renderHook(({ snapshot }) => usePieceSounds(snapshot), {
-      initialProps: { snapshot: buildSnapshot() }
-    })
+    const { rerender } = renderHook(
+      ({ snapshot }) => usePieceSounds(snapshot),
+      {
+        initialProps: { snapshot: buildSnapshot() }
+      }
+    )
 
     rerender({
       snapshot: buildSnapshot({
@@ -100,9 +112,12 @@ describe('usePieceSounds', () => {
   })
 
   it('plays a warning sound on check', () => {
-    const { rerender } = renderHook(({ snapshot }) => usePieceSounds(snapshot), {
-      initialProps: { snapshot: buildSnapshot() }
-    })
+    const { rerender } = renderHook(
+      ({ snapshot }) => usePieceSounds(snapshot),
+      {
+        initialProps: { snapshot: buildSnapshot() }
+      }
+    )
 
     rerender({
       snapshot: buildSnapshot({
@@ -115,11 +130,14 @@ describe('usePieceSounds', () => {
   })
 
   it('does not play a move sound when the history resets on a new game', () => {
-    const { rerender } = renderHook(({ snapshot }) => usePieceSounds(snapshot), {
-      initialProps: {
-        snapshot: buildSnapshot({ history: [buildMove(), buildMove()] })
+    const { rerender } = renderHook(
+      ({ snapshot }) => usePieceSounds(snapshot),
+      {
+        initialProps: {
+          snapshot: buildSnapshot({ history: [buildMove(), buildMove()] })
+        }
       }
-    })
+    )
     vi.clearAllMocks()
 
     rerender({ snapshot: buildSnapshot({ history: [] }) })

@@ -7,9 +7,9 @@ import {
   canDragPiece as canPlayerDragPiece,
   PromotionPiece,
   type GameSnapshot
-} from './game'
-import { PlayerKind, type Player } from './players'
-import type { PeerConnection } from './peer-connection'
+} from '../game'
+import { PlayerKind, type Player } from '../players'
+import type { PeerConnection } from '../peer-connection'
 
 type UseNetGameResult = {
   snapshot: GameSnapshot

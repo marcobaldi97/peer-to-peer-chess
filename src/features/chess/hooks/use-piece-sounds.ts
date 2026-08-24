@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { playSound } from 'react-sounds'
-import { GameStatus, type GameSnapshot } from './game'
+import { GameStatus, type GameSnapshot } from '../game'
 
 // Plays a sound whenever a new move lands in the game history, plus a status
 // cue for check/checkmate/draw. Skipped when history shrinks (a New Game reset).

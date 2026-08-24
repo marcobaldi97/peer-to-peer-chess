@@ -1,14 +1,14 @@
-vi.mock('./game', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./game')>()
+vi.mock('../game', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../game')>()
   return { ...actual, Game: vi.fn() }
 })
 vi.mock('react-sounds', () => ({ playSound: vi.fn() }))
 
 import { renderHook, act } from '@testing-library/react'
 import { playSound } from 'react-sounds'
-import { Game, GameStatus, PromotionPiece, type GameSnapshot } from './game'
-import { PlayerKind, type Player } from './players'
-import type { PeerConnection } from './peer-connection'
+import { Game, GameStatus, PromotionPiece, type GameSnapshot } from '../game'
+import { PlayerKind, type Player } from '../players'
+import type { PeerConnection } from '../peer-connection'
 import { useNetGame } from './use-net-game'
 
 function buildPlayers(): Record<'w' | 'b', Player> {

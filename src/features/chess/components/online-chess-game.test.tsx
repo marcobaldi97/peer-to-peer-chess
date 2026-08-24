@@ -1,14 +1,14 @@
 vi.mock('./online-lobby', () => ({ default: vi.fn() }))
-vi.mock('./use-net-game', () => ({ useNetGame: vi.fn() }))
+vi.mock('../hooks/use-net-game', () => ({ useNetGame: vi.fn() }))
 vi.mock('react-chessboard', () => ({ Chessboard: vi.fn(() => null) }))
 vi.mock('react-sounds', () => ({ playSound: vi.fn() }))
 
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Chessboard } from 'react-chessboard'
-import { GameStatus, type GameSnapshot } from './game'
-import { PlayerKind, type Player } from './players'
-import { ConnectionStatus, type PeerConnection } from './peer-connection'
-import { useNetGame } from './use-net-game'
+import { GameStatus, type GameSnapshot } from '../game'
+import { PlayerKind, type Player } from '../players'
+import { ConnectionStatus, type PeerConnection } from '../peer-connection'
+import { useNetGame } from '../hooks/use-net-game'
 import OnlineLobby from './online-lobby'
 import OnlineChessGame from './online-chess-game'
 
@@ -85,7 +85,9 @@ describe('<OnlineChessGame />', () => {
 
     fireEvent.click(screen.getByText('connect'))
 
-    expect(screen.getByTestId('game-status')).toHaveTextContent('You are to move')
+    expect(screen.getByTestId('game-status')).toHaveTextContent(
+      'You are to move'
+    )
     expect(useNetGame).toHaveBeenCalledWith(connection, 'w')
   })
 

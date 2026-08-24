@@ -1,8 +1,8 @@
-vi.mock('./game', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./game')>()
+vi.mock('../game', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../game')>()
   return { ...actual, Game: vi.fn(), createPlayers: vi.fn() }
 })
-vi.mock('./stockfish-engine', () => ({ createStockfishEngine: vi.fn() }))
+vi.mock('../stockfish-engine', () => ({ createStockfishEngine: vi.fn() }))
 vi.mock('react-sounds', () => ({ playSound: vi.fn() }))
 
 import { renderHook, act, waitFor } from '@testing-library/react'
@@ -13,9 +13,12 @@ import {
   GameStatus,
   PromotionPiece,
   type GameSnapshot
-} from './game'
-import { PlayerKind, type Player } from './players'
-import { createStockfishEngine, type StockfishEngine } from './stockfish-engine'
+} from '../game'
+import { PlayerKind, type Player } from '../players'
+import {
+  createStockfishEngine,
+  type StockfishEngine
+} from '../stockfish-engine'
 import { useGame } from './use-game'
 
 function buildPlayers(): Record<'w' | 'b', Player> {

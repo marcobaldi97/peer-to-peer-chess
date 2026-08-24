@@ -14,9 +14,12 @@ import {
   canDragPiece as canPlayerDragPiece,
   PromotionPiece,
   type GameSnapshot
-} from './game'
-import { PlayerKind } from './players'
-import { createStockfishEngine, type StockfishEngine } from './stockfish-engine'
+} from '../game'
+import { PlayerKind } from '../players'
+import {
+  createStockfishEngine,
+  type StockfishEngine
+} from '../stockfish-engine'
 
 type UseGameResult = {
   snapshot: GameSnapshot

@@ -3,7 +3,7 @@ vi.mock('./game', async (importOriginal) => {
   return { ...actual, Game: vi.fn(), createPlayers: vi.fn() }
 })
 vi.mock('react-chessboard', () => ({ Chessboard: vi.fn(() => null) }))
-vi.mock('./online-chess-game', () => ({
+vi.mock('./components/online-chess-game', () => ({
   default: vi.fn(() => <div>online chess game</div>)
 }))
 vi.mock('react-sounds', async () => {
@@ -19,7 +19,7 @@ import { render, screen, fireEvent, within, act } from '@testing-library/react'
 import { Chessboard } from 'react-chessboard'
 import { Game, createPlayers, GameStatus, type GameSnapshot } from './game'
 import { PlayerKind, type Player } from './players'
-import OnlineChessGame from './online-chess-game'
+import OnlineChessGame from './components/online-chess-game'
 import ChessGame, { statusText } from './index'
 
 function buildPlayers(): Record<'w' | 'b', Player> {
@@ -74,9 +74,12 @@ describe('statusText', () => {
     [GameStatus.Checkmate, 'Checkmate — You have no legal moves'],
     [GameStatus.Check, 'You are in check'],
     [GameStatus.InProgress, 'You are to move']
-  ])('uses second-person grammar for %s when the player is "You"', (status, expected) => {
-    expect(statusText(buildSnapshot({ status }), you)).toBe(expected)
-  })
+  ])(
+    'uses second-person grammar for %s when the player is "You"',
+    (status, expected) => {
+      expect(statusText(buildSnapshot({ status }), you)).toBe(expected)
+    }
+  )
 })
 
 describe('<ChessGame />', () => {

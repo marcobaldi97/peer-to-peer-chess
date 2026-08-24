@@ -1,5 +1,5 @@
-vi.mock('./peer-connection', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./peer-connection')>()
+vi.mock('../peer-connection', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../peer-connection')>()
   return { ...actual, hostGame: vi.fn(), joinGame: vi.fn() }
 })
 
@@ -10,7 +10,7 @@ import {
   joinGame,
   type ConnectionSnapshot,
   type PeerConnection
-} from './peer-connection'
+} from '../peer-connection'
 import OnlineLobby from './online-lobby'
 
 function createFakeConnection(): {

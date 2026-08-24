@@ -41,7 +41,9 @@ export function statusText(snapshot: GameSnapshot, turnPlayer: Player): string {
 
   switch (snapshot.status) {
     case GameStatus.Checkmate:
-      return `Checkmate — ${turnPlayer.name} ${isYou ? 'have' : 'has'} no legal moves`
+      return `Checkmate — ${turnPlayer.name} ${
+        isYou ? 'have' : 'has'
+      } no legal moves`
     case GameStatus.Stalemate:
       return 'Draw by stalemate'
     case GameStatus.Draw:
