@@ -1,7 +1,8 @@
 import { useState, useSyncExternalStore } from 'react'
 import type { Color } from 'chess.js'
 import { Chessboard } from 'react-chessboard'
-import { classNames } from 'utils'
+import { TriangleAlert } from 'lucide-react'
+import { Button } from 'components/ui/button'
 import { statusText } from './game'
 import { ConnectionStatus, type PeerConnection } from './peer-connection'
 import { useNetGame } from './use-net-game'
@@ -9,10 +10,10 @@ import OnlineLobby from './online-lobby'
 
 type Session = { connection: PeerConnection; localColor: Color }
 
-const buttonClassName = classNames(
-  'rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white',
-  'hover:bg-gray-700'
-)
+const squareStyles = {
+  darkSquareStyle: { backgroundColor: 'rgb(var(--color-neutral-300))' },
+  lightSquareStyle: { backgroundColor: 'rgb(var(--color-neutral-100))' }
+}
 
 function NetworkChessBoard({
   connection,
@@ -41,39 +42,81 @@ function NetworkChessBoard({
     connectionSnapshot.status === ConnectionStatus.Error
 
   return (
-    <div className="flex flex-col items-center gap-4 p-4">
-      <p
-        data-testid="game-status"
-        className="text-lg font-medium text-gray-700"
-      >
-        {statusText(snapshot, turnPlayer)}
-      </p>
-
-      {isDisconnected && (
-        <p data-testid="connection-status" className="text-sm text-red-600">
-          {connectionSnapshot.errorMessage ?? 'Opponent disconnected.'}
-        </p>
-      )}
-
-      <div className="w-full max-w-[560px]">
+    <div className="flex flex-1 flex-col justify-center gap-4">
+      <div className="overflow-hidden rounded-sm border-[6px] border-surface shadow-board outline outline-1 outline-divider">
         <Chessboard
           options={{
             id: 'online-chess',
             position: snapshot.fen,
             boardOrientation: localColor === 'w' ? 'white' : 'black',
             onPieceDrop,
-            canDragPiece
+            canDragPiece,
+            ...squareStyles
           }}
         />
       </div>
 
+      <div className="text-center">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-accent">
+          Online match
+        </p>
+        <div className="flex items-baseline justify-center gap-3 font-heading text-[28px] font-semibold">
+          <span
+            className={
+              snapshot.turn === 'w'
+                ? 'border-b-2 border-accent pb-0.5 text-accent-700'
+                : 'text-text/45'
+            }
+          >
+            {snapshot.players.w.name}
+          </span>
+          <span className="font-body text-[15px] font-normal text-text/55">
+            vs
+          </span>
+          <span
+            className={
+              snapshot.turn === 'b'
+                ? 'border-b-2 border-accent pb-0.5 text-accent-700'
+                : 'text-text/45'
+            }
+          >
+            {snapshot.players.b.name}
+          </span>
+        </div>
+        <p data-testid="game-status" className="mt-2 text-base text-text/55">
+          {statusText(snapshot, turnPlayer)}
+        </p>
+      </div>
+
+      {isDisconnected && (
+        <div className="flex flex-row items-center gap-2 rounded border border-accent-700 p-3">
+          <TriangleAlert className="size-4 flex-none text-accent-700" />
+          <span
+            data-testid="connection-status"
+            className="text-[13px] text-accent-700"
+          >
+            {connectionSnapshot.errorMessage ?? 'Opponent disconnected.'}
+          </span>
+        </div>
+      )}
+
       <div className="flex gap-2">
-        <button type="button" onClick={newGame} className={buttonClassName}>
+        <Button
+          variant="secondary"
+          size="lg"
+          className="flex-1"
+          onClick={newGame}
+        >
           New Game
-        </button>
-        <button type="button" onClick={onLeave} className={buttonClassName}>
+        </Button>
+        <Button
+          variant="primary"
+          size="lg"
+          className="flex-1"
+          onClick={onLeave}
+        >
           Leave Game
-        </button>
+        </Button>
       </div>
     </div>
   )

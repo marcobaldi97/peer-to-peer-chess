@@ -7,7 +7,7 @@ vi.mock('./online-chess-game', () => ({
   default: vi.fn(() => <div>online chess game</div>)
 }))
 
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { Chessboard } from 'react-chessboard'
 import { Game, createPlayers, GameStatus, type GameSnapshot } from './game'
 import { PlayerKind, type Player } from './players'
@@ -40,6 +40,10 @@ function createMockGameInstance(snapshot: GameSnapshot) {
     submitMove: vi.fn(() => true),
     reset: vi.fn()
   }
+}
+
+function desktopNav() {
+  return within(screen.getByRole('banner'))
 }
 
 describe('statusText', () => {
@@ -79,6 +83,23 @@ describe('<ChessGame />', () => {
     )
   })
 
+  it('shows the Local match kicker and player names by default', () => {
+    render(<ChessGame />)
+
+    expect(screen.getByText('Local match')).toBeInTheDocument()
+    expect(screen.getByText('Player 1')).toBeInTheDocument()
+    expect(screen.getByText('Player 2')).toBeInTheDocument()
+  })
+
+  it('highlights whichever side is on move', () => {
+    mockGameInstance.getSnapshot.mockReturnValue(buildSnapshot({ turn: 'b' }))
+
+    render(<ChessGame />)
+
+    expect(screen.getByText('Player 2')).toHaveClass('text-accent-700')
+    expect(screen.getByText('Player 1')).toHaveClass('text-text/45')
+  })
+
   it('passes the board position and handlers through to Chessboard', () => {
     render(<ChessGame />)
 
@@ -99,58 +120,57 @@ describe('<ChessGame />', () => {
     expect(mockGameInstance.reset).toHaveBeenCalledWith(players)
   })
 
-  it('renders the "play against computer" checkbox unchecked by default', () => {
-    render(<ChessGame />)
-
-    expect(
-      screen.getByRole('checkbox', { name: /play against computer/i })
-    ).not.toBeChecked()
-  })
-
-  it('checking the box and starting a new game creates computer players', () => {
-    render(<ChessGame />)
-
-    fireEvent.click(
-      screen.getByRole('checkbox', { name: /play against computer/i })
-    )
-
-    expect(
-      screen.getByRole('checkbox', { name: /play against computer/i })
-    ).toBeChecked()
-
-    fireEvent.click(screen.getByRole('button', { name: /new game/i }))
-
-    expect(createPlayers).toHaveBeenLastCalledWith(true)
-  })
-
-  describe('mode toggle', () => {
-    it('defaults to the local game', () => {
+  describe('mode selection', () => {
+    it('defaults to Local mode', () => {
       render(<ChessGame />)
 
-      expect(screen.getByRole('tab', { name: /local game/i })).toHaveAttribute(
-        'aria-selected',
-        'true'
-      )
+      expect(
+        desktopNav().getByRole('radio', { name: /^local$/i })
+      ).toBeChecked()
       expect(screen.getByTestId('game-status')).toBeInTheDocument()
       expect(screen.queryByText('online chess game')).not.toBeInTheDocument()
     })
 
-    it('switches to the online game and back', () => {
+    it('selecting Solo swaps in the computer opponent on the next New Game', () => {
       render(<ChessGame />)
 
-      fireEvent.click(screen.getByRole('tab', { name: /play online/i }))
+      fireEvent.click(desktopNav().getByRole('radio', { name: /^solo$/i }))
+
+      expect(screen.getByText('Solo match')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: /new game/i }))
+
+      expect(createPlayers).toHaveBeenLastCalledWith(true)
+    })
+
+    it('switches to Online and back to Local', () => {
+      render(<ChessGame />)
+
+      fireEvent.click(desktopNav().getByRole('radio', { name: /^online$/i }))
 
       expect(screen.getByText('online chess game')).toBeInTheDocument()
       expect(screen.queryByTestId('game-status')).not.toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: /play online/i })).toHaveAttribute(
-        'aria-selected',
-        'true'
-      )
 
-      fireEvent.click(screen.getByRole('tab', { name: /local game/i }))
+      fireEvent.click(desktopNav().getByRole('radio', { name: /^local$/i }))
 
       expect(screen.getByTestId('game-status')).toBeInTheDocument()
       expect(screen.queryByText('online chess game')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('sound toggle', () => {
+    it('toggles the pressed state', () => {
+      render(<ChessGame />)
+
+      const toggle = desktopNav().getByRole('button', {
+        name: /toggle sound/i
+      })
+
+      expect(toggle).toHaveAttribute('aria-pressed', 'true')
+
+      fireEvent.click(toggle)
+
+      expect(toggle).toHaveAttribute('aria-pressed', 'false')
     })
   })
 })
