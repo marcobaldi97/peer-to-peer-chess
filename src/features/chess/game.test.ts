@@ -22,6 +22,7 @@ function createMockChess(overrides: Record<string, unknown> = {}) {
     pgn: vi.fn().mockReturnValue('mock-pgn'),
     history: vi.fn().mockReturnValue([]),
     move: vi.fn(),
+    loadPgn: vi.fn(),
     ...overrides
   }
 }
@@ -108,6 +109,28 @@ describe('Game', () => {
     currentMockChess.isGameOver.mockReturnValue(true)
 
     expect(new Game(createPlayers(false)).getSnapshot().isGameOver).toBe(true)
+  })
+
+  describe('restoring from a saved pgn', () => {
+    it('loads the given pgn into chess.js', () => {
+      new Game(createPlayers(false), '1. e4 e5')
+
+      expect(currentMockChess.loadPgn).toHaveBeenCalledWith('1. e4 e5')
+    })
+
+    it('does not call loadPgn when no initial pgn is given', () => {
+      new Game(createPlayers(false))
+
+      expect(currentMockChess.loadPgn).not.toHaveBeenCalled()
+    })
+
+    it('falls back to a fresh game when the saved pgn is invalid', () => {
+      currentMockChess.loadPgn.mockImplementation(() => {
+        throw new Error('Invalid pgn')
+      })
+
+      expect(() => new Game(createPlayers(false), 'garbage')).not.toThrow()
+    })
   })
 
   describe('submitMove', () => {

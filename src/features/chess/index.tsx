@@ -14,6 +14,7 @@ import {
 import SiteFooter from 'components/site-footer'
 import logo from 'assets/logo.png'
 import { GameStatus, statusText } from './game'
+import { loadInProgressGame } from './game-storage'
 import { useGame } from './use-game'
 import { usePieceSounds } from './use-piece-sounds'
 import OnlineChessGame from './online-chess-game'
@@ -42,8 +43,17 @@ const squareStyles: Partial<ChessboardOptions> = {
   lightSquareStyle: { backgroundColor: 'rgb(var(--color-neutral-100))' }
 }
 
-function LocalChessGame({ vsComputer }: { vsComputer: boolean }) {
-  const { snapshot, onPieceDrop, canDragPiece, newGame } = useGame(vsComputer)
+function LocalChessGame({
+  vsComputer,
+  initialPgn
+}: {
+  vsComputer: boolean
+  initialPgn?: string
+}) {
+  const { snapshot, onPieceDrop, canDragPiece, newGame } = useGame(
+    vsComputer,
+    initialPgn
+  )
   usePieceSounds(snapshot)
   const turnPlayer = snapshot.players[snapshot.turn]
 
@@ -118,7 +128,13 @@ type ChessGameProps = {
 }
 
 function ChessGameContent({ invitePeerId, onInviteSettled }: ChessGameProps) {
-  const [mode, setMode] = useState<Mode>(invitePeerId ? 'online' : 'local')
+  const [savedGame] = useState(() => loadInProgressGame())
+  const [mode, setMode] = useState<Mode>(() => {
+    if (invitePeerId) return 'online'
+    if (savedGame) return savedGame.vsComputer ? 'local' : 'solo'
+
+    return 'local'
+  })
   const [autoJoinPeerId, setAutoJoinPeerId] = useState(invitePeerId)
   const [soundOn, setSoundOn] = useSoundEnabled()
 
@@ -167,7 +183,10 @@ function ChessGameContent({ invitePeerId, onInviteSettled }: ChessGameProps) {
             onInviteSettled={handleInviteSettled}
           />
         ) : (
-          <LocalChessGame vsComputer={mode === 'local'} />
+          <LocalChessGame
+            vsComputer={mode === 'local'}
+            initialPgn={savedGame?.pgn}
+          />
         )}
 
         <div className="flex items-center gap-3 md:hidden">

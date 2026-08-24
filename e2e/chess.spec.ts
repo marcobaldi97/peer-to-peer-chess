@@ -76,3 +76,48 @@ test('hot-seat chess enforces turn order and legal moves', async ({ page }) => {
     await expect(pieceOn(page, 'e5')).toHaveCount(0)
   })
 })
+
+test('resumes an in-progress Solo game after reloading the tab', async ({
+  page
+}) => {
+  await test.step('play a move in Solo mode', async () => {
+    await page.goto('/')
+    await page.getByRole('banner').getByText('Solo', { exact: true }).click()
+    await dragSquare(page, 'e2', 'e4')
+
+    await expect(page.getByTestId('active-player')).toHaveText('Blacks')
+  })
+
+  await test.step('reloading the tab resumes the same game', async () => {
+    await page.reload()
+
+    await expect(
+      page.getByRole('banner').getByRole('radio', { name: /^solo$/i })
+    ).toBeChecked()
+    await expect(page.getByTestId('active-player')).toHaveText('Blacks')
+    await expect(pieceOn(page, 'e4')).toBeVisible()
+    await expect(pieceOn(page, 'e2')).toHaveCount(0)
+  })
+})
+
+test('remembers the sound toggle after reloading the tab', async ({ page }) => {
+  await page.goto('/')
+
+  const soundToggle = page
+    .getByRole('banner')
+    .getByRole('button', { name: /toggle sound/i })
+
+  await test.step('turn sound off', async () => {
+    await expect(soundToggle).toHaveAttribute('aria-pressed', 'true')
+
+    await soundToggle.click()
+
+    await expect(soundToggle).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  await test.step('reloading the tab keeps sound off', async () => {
+    await page.reload()
+
+    await expect(soundToggle).toHaveAttribute('aria-pressed', 'false')
+  })
+})
