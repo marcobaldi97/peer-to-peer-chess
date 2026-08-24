@@ -124,7 +124,15 @@ function NetworkChessBoard({
   )
 }
 
-export default function OnlineChessGame() {
+type OnlineChessGameProps = {
+  invitePeerId?: string
+  onInviteSettled?: (connected: boolean) => void
+}
+
+export default function OnlineChessGame({
+  invitePeerId,
+  onInviteSettled
+}: OnlineChessGameProps) {
   const [session, setSession] = useState<Session | null>(null)
 
   if (!session) {
@@ -133,6 +141,8 @@ export default function OnlineChessGame() {
         onConnected={(connection, localColor) =>
           setSession({ connection, localColor })
         }
+        autoJoinPeerId={invitePeerId}
+        onAutoJoinSettled={onInviteSettled}
       />
     )
   }

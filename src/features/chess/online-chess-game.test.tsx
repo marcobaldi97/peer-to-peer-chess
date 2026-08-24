@@ -185,4 +185,23 @@ describe('<OnlineChessGame />', () => {
     expect(connection.close).toHaveBeenCalledTimes(1)
     expect(screen.getByText('connect')).toBeInTheDocument()
   })
+
+  it('forwards invitePeerId/onInviteSettled to the lobby as autoJoinPeerId/onAutoJoinSettled', () => {
+    vi.mocked(OnlineLobby).mockImplementation(() => <div>lobby</div>)
+    const onInviteSettled = vi.fn()
+
+    render(
+      <OnlineChessGame
+        invitePeerId="abc123"
+        onInviteSettled={onInviteSettled}
+      />
+    )
+
+    const props = vi.mocked(OnlineLobby).mock.calls[0][0]
+    expect(props.autoJoinPeerId).toBe('abc123')
+
+    props.onAutoJoinSettled?.(true)
+
+    expect(onInviteSettled).toHaveBeenCalledWith(true)
+  })
 })

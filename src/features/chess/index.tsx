@@ -112,9 +112,20 @@ function LocalChessGame({ vsComputer }: { vsComputer: boolean }) {
   )
 }
 
-function ChessGameContent() {
-  const [mode, setMode] = useState<Mode>('local')
+type ChessGameProps = {
+  invitePeerId?: string
+  onInviteSettled?: (connected: boolean) => void
+}
+
+function ChessGameContent({ invitePeerId, onInviteSettled }: ChessGameProps) {
+  const [mode, setMode] = useState<Mode>(invitePeerId ? 'online' : 'local')
+  const [autoJoinPeerId, setAutoJoinPeerId] = useState(invitePeerId)
   const [soundOn, setSoundOn] = useSoundEnabled()
+
+  const handleInviteSettled = (connected: boolean): void => {
+    setAutoJoinPeerId(undefined)
+    onInviteSettled?.(connected)
+  }
 
   const soundToggle = (size: 'icon' | 'icon-lg') => (
     <Button
@@ -151,7 +162,10 @@ function ChessGameContent() {
 
       <div className="mx-auto flex w-full max-w-[480px] flex-1 flex-col gap-4 p-4">
         {mode === 'online' ? (
-          <OnlineChessGame />
+          <OnlineChessGame
+            invitePeerId={autoJoinPeerId}
+            onInviteSettled={handleInviteSettled}
+          />
         ) : (
           <LocalChessGame vsComputer={mode === 'local'} />
         )}
@@ -173,10 +187,16 @@ function ChessGameContent() {
   )
 }
 
-export default function ChessGame() {
+export default function ChessGame({
+  invitePeerId,
+  onInviteSettled
+}: ChessGameProps = {}) {
   return (
     <SoundProvider preload={preloadSounds}>
-      <ChessGameContent />
+      <ChessGameContent
+        invitePeerId={invitePeerId}
+        onInviteSettled={onInviteSettled}
+      />
     </SoundProvider>
   )
 }
