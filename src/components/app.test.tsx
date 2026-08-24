@@ -6,9 +6,8 @@ describe('<App />', () => {
   it('should render the App with a fresh hot-seat game', () => {
     const { container } = render(<App />)
 
-    expect(screen.getByTestId('game-status')).toHaveTextContent(
-      /Player 1 to move/i
-    )
+    expect(screen.getByTestId('active-player')).toHaveTextContent('Player 1')
+    expect(screen.queryByTestId('game-status')).not.toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: /new game/i })
     ).toBeInTheDocument()

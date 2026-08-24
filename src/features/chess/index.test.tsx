@@ -75,11 +75,22 @@ describe('<ChessGame />', () => {
     vi.mocked(createPlayers).mockReturnValue(players)
   })
 
-  it('renders the status line for the side to move', () => {
+  it('highlights the side to move instead of repeating it in text', () => {
+    render(<ChessGame />)
+
+    expect(screen.getByTestId('active-player')).toHaveTextContent('Player 1')
+    expect(screen.queryByTestId('game-status')).not.toBeInTheDocument()
+  })
+
+  it('shows the status line once there is something to say beyond whose turn it is', () => {
+    mockGameInstance.getSnapshot.mockReturnValue(
+      buildSnapshot({ status: GameStatus.Check })
+    )
+
     render(<ChessGame />)
 
     expect(screen.getByTestId('game-status')).toHaveTextContent(
-      'Player 1 to move'
+      'Player 1 is in check'
     )
   })
 
@@ -127,11 +138,21 @@ describe('<ChessGame />', () => {
       expect(
         desktopNav().getByRole('radio', { name: /^local$/i })
       ).toBeChecked()
-      expect(screen.getByTestId('game-status')).toBeInTheDocument()
+      expect(screen.getByTestId('active-player')).toBeInTheDocument()
       expect(screen.queryByText('online chess game')).not.toBeInTheDocument()
     })
 
-    it('selecting Solo swaps in the computer opponent on the next New Game', () => {
+    it('Local mode plays against the computer on the next New Game', () => {
+      render(<ChessGame />)
+
+      expect(screen.getByText('Local match')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: /new game/i }))
+
+      expect(createPlayers).toHaveBeenLastCalledWith(true)
+    })
+
+    it('selecting Solo swaps to hot-seat play on the next New Game', () => {
       render(<ChessGame />)
 
       fireEvent.click(desktopNav().getByRole('radio', { name: /^solo$/i }))
@@ -140,7 +161,18 @@ describe('<ChessGame />', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /new game/i }))
 
-      expect(createPlayers).toHaveBeenLastCalledWith(true)
+      expect(createPlayers).toHaveBeenLastCalledWith(false)
+    })
+
+    it('Solo mode labels the sides Whites and Blacks instead of the player names', () => {
+      render(<ChessGame />)
+
+      fireEvent.click(desktopNav().getByRole('radio', { name: /^solo$/i }))
+
+      expect(screen.getByTestId('active-player')).toHaveTextContent('Whites')
+      expect(screen.getByText('Blacks')).toBeInTheDocument()
+      expect(screen.queryByText('Player 1')).not.toBeInTheDocument()
+      expect(screen.queryByText('Player 2')).not.toBeInTheDocument()
     })
 
     it('switches to Online and back to Local', () => {
@@ -153,7 +185,7 @@ describe('<ChessGame />', () => {
 
       fireEvent.click(desktopNav().getByRole('radio', { name: /^local$/i }))
 
-      expect(screen.getByTestId('game-status')).toBeInTheDocument()
+      expect(screen.getByTestId('active-player')).toBeInTheDocument()
       expect(screen.queryByText('online chess game')).not.toBeInTheDocument()
     })
   })
