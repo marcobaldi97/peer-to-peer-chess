@@ -1,4 +1,21 @@
-### Install
+# Peer-to-Peer Chess
+This is the repo for https://chess.marcobaldi.me/
+
+The objective is to show my skills as a full-stack engineer in developing and deploying a full-stack web app.
+
+## Features
+
+### Done
+- Play chess Solo (react-chessboard/chess.js)
+- Play against computer (Stockfish)
+- Play online (PeerJS)
+- Play sound cues (react-sound)
+
+### Todo
+- Authentication (AWS Cognito)
+- Match history (AWS Lambda/DynamoDB)
+
+## Install
 
 Install dependencies.
 
