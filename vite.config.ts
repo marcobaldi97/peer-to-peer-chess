@@ -9,6 +9,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'happy-dom',
+    environmentOptions: { happyDOM: { url: 'http://localhost:3000/' } },
     setupFiles: '.vitest/setup',
     include: ['**/*.test.{ts,tsx}'],
     coverage: {

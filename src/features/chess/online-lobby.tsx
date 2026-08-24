@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   useState,
   useSyncExternalStore,
   type FormEvent
@@ -18,12 +19,19 @@ import {
 
 type OnlineLobbyProps = {
   onConnected: (connection: PeerConnection, localColor: Color) => void
+  autoJoinPeerId?: string
+  onAutoJoinSettled?: (connected: boolean) => void
 }
 
 type LobbyView =
   | { kind: 'menu' }
   | { kind: 'join-form' }
-  | { kind: 'connecting'; connection: PeerConnection; localColor: Color }
+  | {
+      kind: 'connecting'
+      connection: PeerConnection
+      localColor: Color
+      auto?: boolean
+    }
 
 function statusMessage(snapshot: ReturnType<PeerConnection['getSnapshot']>): {
   isError: boolean
@@ -74,30 +82,36 @@ function ConnectingScreen({
     snapshot.status === ConnectionStatus.Disconnected ||
     snapshot.status === ConnectionStatus.Error
   const isSharingCode = snapshot.status === ConnectionStatus.Waiting
+  const inviteUrl = isSharingCode
+    ? `${window.location.origin}/join/${snapshot.localPeerId}`
+    : null
 
-  const copyCode = (): void => {
-    navigator.clipboard.writeText(snapshot.localPeerId as string)
+  const copyLink = (): void => {
+    navigator.clipboard.writeText(inviteUrl as string)
     setCodeCopied(true)
     setTimeout(() => setCodeCopied(false), 1500)
   }
 
   return (
     <div className="mt-4 flex flex-col items-center gap-3 rounded border border-divider p-4 text-center shadow-board">
-      {isSharingCode && (
+      {isSharingCode && inviteUrl && (
         <>
           <p className="text-[10px] font-semibold uppercase tracking-widest text-accent">
-            Share this code
+            Share this link
           </p>
           <div className="flex w-full items-center gap-2">
-            <div className="flex h-9 flex-1 items-center justify-center rounded border border-divider font-heading text-xl tracking-wide">
-              {snapshot.localPeerId}
+            <div
+              data-testid="invite-link"
+              className="flex h-9 flex-1 items-center justify-center truncate rounded border border-divider px-2 font-heading text-sm tracking-wide"
+            >
+              {inviteUrl}
             </div>
             <Button
               type="button"
               variant="secondary"
               size="icon"
-              aria-label="Copy code"
-              onClick={copyCode}
+              aria-label="Copy invite link"
+              onClick={copyLink}
             >
               {codeCopied ? (
                 <Check className="size-4" />
@@ -106,6 +120,9 @@ function ConnectingScreen({
               )}
             </Button>
           </div>
+          <p className="text-xs text-text/55">
+            Or share this code: {snapshot.localPeerId}
+          </p>
         </>
       )}
 
@@ -128,9 +145,25 @@ function ConnectingScreen({
   )
 }
 
-export default function OnlineLobby({ onConnected }: OnlineLobbyProps) {
+export default function OnlineLobby({
+  onConnected,
+  autoJoinPeerId,
+  onAutoJoinSettled
+}: OnlineLobbyProps) {
   const [view, setView] = useState<LobbyView>({ kind: 'menu' })
   const [joinId, setJoinId] = useState('')
+  const autoJoinTriggered = useRef(false)
+
+  useEffect(() => {
+    if (!autoJoinPeerId || autoJoinTriggered.current) return
+    autoJoinTriggered.current = true
+    setView({
+      kind: 'connecting',
+      connection: joinGame(autoJoinPeerId),
+      localColor: 'b',
+      auto: true
+    })
+  }, [autoJoinPeerId])
 
   const handleCreateGame = (): void => {
     setView({ kind: 'connecting', connection: hostGame(), localColor: 'w' })
@@ -146,14 +179,20 @@ export default function OnlineLobby({ onConnected }: OnlineLobbyProps) {
   }
 
   if (view.kind === 'connecting') {
+    const isAuto = view.auto ?? false
+
     return (
       <ConnectingScreen
         connection={view.connection}
         localColor={view.localColor}
-        onConnected={onConnected}
+        onConnected={(connection, localColor) => {
+          onConnected(connection, localColor)
+          if (isAuto) onAutoJoinSettled?.(true)
+        }}
         onCancel={() => {
           view.connection.close()
           setView({ kind: 'menu' })
+          if (isAuto) onAutoJoinSettled?.(false)
         }}
       />
     )
