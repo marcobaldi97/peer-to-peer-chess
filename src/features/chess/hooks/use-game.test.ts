@@ -220,6 +220,31 @@ describe('useGame', () => {
     expect(mockGameInstance.reset).toHaveBeenCalledWith(snapshot.players)
   })
 
+  it('resets the game with fresh players when vsComputer changes after mount', () => {
+    const { rerender } = renderHook(
+      (vsComputer: boolean) => useGame(vsComputer),
+      { initialProps: false }
+    )
+
+    expect(mockGameInstance.reset).not.toHaveBeenCalled()
+
+    rerender(true)
+
+    expect(createPlayers).toHaveBeenCalledWith(true)
+    expect(mockGameInstance.reset).toHaveBeenCalledWith(snapshot.players)
+  })
+
+  it('does not reset the game when vsComputer is unchanged across a re-render', () => {
+    const { rerender } = renderHook(
+      (vsComputer: boolean) => useGame(vsComputer),
+      { initialProps: false }
+    )
+
+    rerender(false)
+
+    expect(mockGameInstance.reset).not.toHaveBeenCalled()
+  })
+
   describe('computer opponent', () => {
     it('does not create an engine when the side to move is a local human', () => {
       const { unmount } = renderHook(() => useGame(false))

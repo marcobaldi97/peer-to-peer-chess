@@ -29,7 +29,8 @@ type UseGameResult = {
 }
 
 export function useGame(vsComputer: boolean): UseGameResult {
-  const [game] = useState(() => new Game(createPlayers(vsComputer)))
+  const [game, setGame] = useState(() => new Game(createPlayers(vsComputer)))
+  const currentGamemode = useRef(vsComputer)
   const engineRef = useRef<StockfishEngine | null>(null)
   const snapshot = useSyncExternalStore<GameSnapshot>(
     game.subscribe,
@@ -92,6 +93,14 @@ export function useGame(vsComputer: boolean): UseGameResult {
     () => game.reset(createPlayers(vsComputer)),
     [game, vsComputer]
   )
+
+  useEffect(() => {
+    if (vsComputer === currentGamemode.current) return
+
+    newGame()
+
+    currentGamemode.current = vsComputer
+  }, [vsComputer, setGame, newGame])
 
   return { snapshot, onPieceDrop, canDragPiece, newGame }
 }
