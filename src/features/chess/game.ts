@@ -66,8 +66,17 @@ export class Game {
   private listeners = new Set<Listener>()
   private snapshot: GameSnapshot
 
-  constructor(players: Record<Color, Player>) {
+  constructor(players: Record<Color, Player>, initialPgn?: string) {
     this.players = players
+
+    if (initialPgn) {
+      try {
+        this.chess.loadPgn(initialPgn)
+      } catch {
+        // corrupted/incompatible saved game — fall back to a fresh game
+      }
+    }
+
     this.snapshot = this.computeSnapshot()
   }
 

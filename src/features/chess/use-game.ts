@@ -15,6 +15,7 @@ import {
   PromotionPiece,
   type GameSnapshot
 } from './game'
+import { saveInProgressGame, clearInProgressGame } from './game-storage'
 import { PlayerKind } from './players'
 import { createStockfishEngine, type StockfishEngine } from './stockfish-engine'
 
@@ -25,8 +26,11 @@ type UseGameResult = {
   newGame: () => void
 }
 
-export function useGame(vsComputer: boolean): UseGameResult {
-  const [game] = useState(() => new Game(createPlayers(vsComputer)))
+export function useGame(
+  vsComputer: boolean,
+  initialPgn?: string
+): UseGameResult {
+  const [game] = useState(() => new Game(createPlayers(vsComputer), initialPgn))
   const engineRef = useRef<StockfishEngine | null>(null)
   const snapshot = useSyncExternalStore<GameSnapshot>(
     game.subscribe,
@@ -36,6 +40,14 @@ export function useGame(vsComputer: boolean): UseGameResult {
   useEffect(() => {
     return () => engineRef.current?.terminate()
   }, [])
+
+  useEffect(() => {
+    if (snapshot.isGameOver) {
+      clearInProgressGame()
+    } else {
+      saveInProgressGame(vsComputer, snapshot.pgn)
+    }
+  }, [snapshot, vsComputer])
 
   useEffect(() => {
     if (snapshot.isGameOver) return

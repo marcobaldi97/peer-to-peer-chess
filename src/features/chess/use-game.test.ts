@@ -4,6 +4,10 @@ vi.mock('./game', async (importOriginal) => {
 })
 vi.mock('./stockfish-engine', () => ({ createStockfishEngine: vi.fn() }))
 vi.mock('react-sounds', () => ({ playSound: vi.fn() }))
+vi.mock('./game-storage', () => ({
+  saveInProgressGame: vi.fn(),
+  clearInProgressGame: vi.fn()
+}))
 
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { playSound } from 'react-sounds'
@@ -14,6 +18,7 @@ import {
   PromotionPiece,
   type GameSnapshot
 } from './game'
+import { saveInProgressGame, clearInProgressGame } from './game-storage'
 import { PlayerKind, type Player } from './players'
 import { createStockfishEngine, type StockfishEngine } from './stockfish-engine'
 import { useGame } from './use-game'
@@ -84,6 +89,34 @@ describe('useGame', () => {
     const { result } = renderHook(() => useGame(false))
 
     expect(result.current.snapshot).toBe(snapshot)
+  })
+
+  it('passes an initial pgn through to the Game constructor', () => {
+    renderHook(() => useGame(false, '1. e4 e5'))
+
+    expect(Game).toHaveBeenCalledWith(snapshot.players, '1. e4 e5')
+  })
+
+  describe('persistence', () => {
+    it('saves the mode and pgn whenever the game is in progress', () => {
+      snapshot = buildSnapshot({ pgn: '1. e4', isGameOver: false })
+      mockGameInstance.getSnapshot.mockReturnValue(snapshot)
+
+      renderHook(() => useGame(true))
+
+      expect(saveInProgressGame).toHaveBeenCalledWith(true, '1. e4')
+      expect(clearInProgressGame).not.toHaveBeenCalled()
+    })
+
+    it('clears the saved game once it is over', () => {
+      snapshot = buildSnapshot({ isGameOver: true })
+      mockGameInstance.getSnapshot.mockReturnValue(snapshot)
+
+      renderHook(() => useGame(false))
+
+      expect(clearInProgressGame).toHaveBeenCalled()
+      expect(saveInProgressGame).not.toHaveBeenCalled()
+    })
   })
 
   describe('onPieceDrop', () => {

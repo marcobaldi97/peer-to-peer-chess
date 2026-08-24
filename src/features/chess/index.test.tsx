@@ -14,10 +14,16 @@ vi.mock('react-sounds', async () => {
     useSoundEnabled: () => useState(true)
   }
 })
+vi.mock('./game-storage', () => ({
+  loadInProgressGame: vi.fn(),
+  saveInProgressGame: vi.fn(),
+  clearInProgressGame: vi.fn()
+}))
 
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { Chessboard } from 'react-chessboard'
 import { Game, createPlayers, GameStatus, type GameSnapshot } from './game'
+import { loadInProgressGame } from './game-storage'
 import { PlayerKind, type Player } from './players'
 import ChessGame, { statusText } from './index'
 
@@ -81,6 +87,7 @@ describe('<ChessGame />', () => {
       () => mockGameInstance as unknown as Game
     )
     vi.mocked(createPlayers).mockReturnValue(players)
+    vi.mocked(loadInProgressGame).mockReturnValue(null)
   })
 
   it('highlights the side to move instead of repeating it in text', () => {
@@ -181,6 +188,32 @@ describe('<ChessGame />', () => {
       expect(screen.getByText('Blacks')).toBeInTheDocument()
       expect(screen.queryByText('Player 1')).not.toBeInTheDocument()
       expect(screen.queryByText('Player 2')).not.toBeInTheDocument()
+    })
+
+    it('resumes into Local mode with the saved pgn when a saved vsComputer game exists', () => {
+      vi.mocked(loadInProgressGame).mockReturnValue({
+        vsComputer: true,
+        pgn: '1. e4 e5'
+      })
+
+      render(<ChessGame />)
+
+      expect(
+        desktopNav().getByRole('radio', { name: /^local$/i })
+      ).toBeChecked()
+      expect(vi.mocked(Game)).toHaveBeenCalledWith(players, '1. e4 e5')
+    })
+
+    it('resumes into Solo mode when a saved hot-seat game exists', () => {
+      vi.mocked(loadInProgressGame).mockReturnValue({
+        vsComputer: false,
+        pgn: '1. d4 d5'
+      })
+
+      render(<ChessGame />)
+
+      expect(desktopNav().getByRole('radio', { name: /^solo$/i })).toBeChecked()
+      expect(vi.mocked(Game)).toHaveBeenCalledWith(players, '1. d4 d5')
     })
 
     it('switches to Online and back to Local', () => {
