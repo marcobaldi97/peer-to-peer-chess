@@ -3,7 +3,7 @@ vi.mock('../hooks/use-net-game', () => ({ useNetGame: vi.fn() }))
 vi.mock('react-chessboard', () => ({ Chessboard: vi.fn(() => null) }))
 vi.mock('react-sounds', () => ({ playSound: vi.fn() }))
 
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { Chessboard } from 'react-chessboard'
 import { GameStatus, type GameSnapshot } from '../game'
 import { PlayerKind, type Player } from '../players'
@@ -193,8 +193,7 @@ describe('<OnlineChessGame />', () => {
   })
 
   describe('Surrender', () => {
-    it('asks for confirmation before resigning', () => {
-      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    it('asks for confirmation in a dialog before resigning, and cancelling closes it without resigning', () => {
       const resign = vi.fn()
       vi.mocked(useNetGame).mockReturnValue({
         snapshot: buildSnapshot(),
@@ -210,14 +209,14 @@ describe('<OnlineChessGame />', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /surrender/i }))
 
-      expect(confirmSpy).toHaveBeenCalledWith(
-        'Are you sure you want to surrender?'
-      )
+      const dialog = screen.getByRole('alertdialog')
+      fireEvent.click(within(dialog).getByRole('button', { name: /cancel/i }))
+
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
       expect(resign).not.toHaveBeenCalled()
     })
 
-    it('resigns as the local color when confirmed, ending the game and showing the resignation status', () => {
-      vi.spyOn(window, 'confirm').mockReturnValue(true)
+    it('resigns as the local color when confirmed in the dialog, ending the game and showing the resignation status', () => {
       const resign = vi.fn()
       vi.mocked(useNetGame).mockReturnValue({
         snapshot: buildSnapshot(),
@@ -233,6 +232,12 @@ describe('<OnlineChessGame />', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /surrender/i }))
 
+      const dialog = screen.getByRole('alertdialog')
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: /yes, surrender/i })
+      )
+
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
       expect(resign).toHaveBeenCalledTimes(1)
 
       vi.mocked(useNetGame).mockReturnValue({

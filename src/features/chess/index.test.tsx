@@ -184,25 +184,34 @@ describe('<ChessGame />', () => {
   })
 
   describe('Surrender', () => {
-    it('asks for confirmation before resigning', () => {
-      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    it('asks for confirmation in a dialog before resigning, and cancelling closes it without resigning', () => {
       render(<ChessGame />)
 
       fireEvent.click(screen.getByRole('button', { name: /surrender/i }))
 
-      expect(confirmSpy).toHaveBeenCalledWith(
-        'Are you sure you want to surrender?'
-      )
+      const dialog = screen.getByRole('alertdialog')
+      expect(
+        within(dialog).getByText('Surrender the game?')
+      ).toBeInTheDocument()
+
+      fireEvent.click(within(dialog).getByRole('button', { name: /cancel/i }))
+
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
       expect(mockGameInstance.resign).not.toHaveBeenCalled()
     })
 
-    it('resigns the side to move when confirmed, ending the game and showing the resignation status', () => {
-      vi.spyOn(window, 'confirm').mockReturnValue(true)
+    it('resigns the side to move when confirmed in the dialog, ending the game and showing the resignation status', () => {
       render(<ChessGame />)
       const listener = mockGameInstance.subscribe.mock.calls[0][0]
 
       fireEvent.click(screen.getByRole('button', { name: /surrender/i }))
 
+      const dialog = screen.getByRole('alertdialog')
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: /yes, surrender/i })
+      )
+
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
       expect(mockGameInstance.resign).toHaveBeenCalledWith('w')
 
       act(() => {

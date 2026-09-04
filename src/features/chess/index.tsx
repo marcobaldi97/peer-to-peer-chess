@@ -6,6 +6,7 @@ import {
   type LibrarySoundName
 } from 'react-sounds'
 import { Button } from 'components/ui/button'
+import { ConfirmDialog } from 'components/ui/confirm-dialog'
 import {
   SegmentedControl,
   type SegmentedControlOption
@@ -40,16 +41,11 @@ const modeOptions: SegmentedControlOption<Mode>[] = [
 function LocalChessGame({ vsComputer }: { vsComputer: boolean }) {
   const { snapshot, onPieceDrop, canDragPiece, newGame, resign } =
     useGame(vsComputer)
+  const [confirmingResign, setConfirmingResign] = useState(false)
 
   const canResign =
     !snapshot.isGameOver &&
     snapshot.players[snapshot.turn].kind === PlayerKind.LocalHuman
-
-  const handleResign = () => {
-    if (window.confirm('Are you sure you want to surrender?')) {
-      resign(snapshot.turn)
-    }
-  }
 
   return (
     <div className="flex flex-1 flex-col justify-center gap-4">
@@ -82,12 +78,25 @@ function LocalChessGame({ vsComputer }: { vsComputer: boolean }) {
           variant="secondary"
           size="lg"
           className="flex-1"
-          onClick={handleResign}
+          onClick={() => setConfirmingResign(true)}
           disabled={!canResign}
         >
           Surrender
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={confirmingResign}
+        title="Surrender the game?"
+        description="This ends the game immediately and counts as a loss."
+        confirmLabel="Yes, surrender"
+        cancelLabel="Cancel"
+        onCancel={() => setConfirmingResign(false)}
+        onConfirm={() => {
+          setConfirmingResign(false)
+          resign(snapshot.turn)
+        }}
+      />
     </div>
   )
 }
