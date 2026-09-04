@@ -19,6 +19,7 @@ function buildSnapshot(overrides: Partial<GameSnapshot> = {}): GameSnapshot {
     players: buildPlayers(),
     pgn: '1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7#',
     history: [],
+    winner: null,
     ...overrides
   }
 }
