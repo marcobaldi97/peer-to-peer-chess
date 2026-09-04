@@ -3,7 +3,7 @@ vi.mock('../hooks/use-net-game', () => ({ useNetGame: vi.fn() }))
 vi.mock('react-chessboard', () => ({ Chessboard: vi.fn(() => null) }))
 vi.mock('react-sounds', () => ({ playSound: vi.fn() }))
 
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { Chessboard } from 'react-chessboard'
 import { GameStatus, type GameSnapshot } from '../game'
 import { PlayerKind, type Player } from '../players'
@@ -28,6 +28,7 @@ function buildSnapshot(overrides: Partial<GameSnapshot> = {}): GameSnapshot {
     players: buildPlayers(),
     pgn: '',
     history: [],
+    winner: null,
     ...overrides
   }
 }
@@ -66,7 +67,8 @@ describe('<OnlineChessGame />', () => {
       snapshot: buildSnapshot(),
       onPieceDrop: vi.fn(),
       canDragPiece: vi.fn(),
-      newGame: vi.fn()
+      newGame: vi.fn(),
+      resign: vi.fn()
     })
   })
 
@@ -136,7 +138,8 @@ describe('<OnlineChessGame />', () => {
       snapshot: buildSnapshot({ turn: 'b' }),
       onPieceDrop: vi.fn(),
       canDragPiece: vi.fn(),
-      newGame: vi.fn()
+      newGame: vi.fn(),
+      resign: vi.fn()
     })
     const connection = createFakeConnection()
     mockLobbyToConnect(connection, 'w')
@@ -164,7 +167,8 @@ describe('<OnlineChessGame />', () => {
       snapshot: buildSnapshot(),
       onPieceDrop: vi.fn(),
       canDragPiece: vi.fn(),
-      newGame
+      newGame,
+      resign: vi.fn()
     })
     const connection = createFakeConnection()
     mockLobbyToConnect(connection, 'w')
@@ -186,6 +190,89 @@ describe('<OnlineChessGame />', () => {
 
     expect(connection.close).toHaveBeenCalledTimes(1)
     expect(screen.getByText('connect')).toBeInTheDocument()
+  })
+
+  describe('Surrender', () => {
+    it('asks for confirmation in a dialog before resigning, and cancelling closes it without resigning', () => {
+      const resign = vi.fn()
+      vi.mocked(useNetGame).mockReturnValue({
+        snapshot: buildSnapshot(),
+        onPieceDrop: vi.fn(),
+        canDragPiece: vi.fn(),
+        newGame: vi.fn(),
+        resign
+      })
+      const connection = createFakeConnection()
+      mockLobbyToConnect(connection, 'w')
+      render(<OnlineChessGame />)
+      fireEvent.click(screen.getByText('connect'))
+
+      fireEvent.click(screen.getByRole('button', { name: /surrender/i }))
+
+      const dialog = screen.getByRole('alertdialog')
+      fireEvent.click(within(dialog).getByRole('button', { name: /cancel/i }))
+
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+      expect(resign).not.toHaveBeenCalled()
+    })
+
+    it('resigns as the local color when confirmed in the dialog, ending the game and showing the resignation status', () => {
+      const resign = vi.fn()
+      vi.mocked(useNetGame).mockReturnValue({
+        snapshot: buildSnapshot(),
+        onPieceDrop: vi.fn(),
+        canDragPiece: vi.fn(),
+        newGame: vi.fn(),
+        resign
+      })
+      const connection = createFakeConnection()
+      mockLobbyToConnect(connection, 'w')
+      const { rerender } = render(<OnlineChessGame />)
+      fireEvent.click(screen.getByText('connect'))
+
+      fireEvent.click(screen.getByRole('button', { name: /surrender/i }))
+
+      const dialog = screen.getByRole('alertdialog')
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: /yes, surrender/i })
+      )
+
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+      expect(resign).toHaveBeenCalledTimes(1)
+
+      vi.mocked(useNetGame).mockReturnValue({
+        snapshot: buildSnapshot({
+          status: GameStatus.Resignation,
+          isGameOver: true,
+          winner: 'b'
+        }),
+        onPieceDrop: vi.fn(),
+        canDragPiece: vi.fn(),
+        newGame: vi.fn(),
+        resign
+      })
+      rerender(<OnlineChessGame />)
+
+      expect(screen.getByTestId('game-status')).toHaveTextContent(
+        'Opponent wins by resignation'
+      )
+    })
+
+    it('disables the button once the game is over', () => {
+      vi.mocked(useNetGame).mockReturnValue({
+        snapshot: buildSnapshot({ isGameOver: true }),
+        onPieceDrop: vi.fn(),
+        canDragPiece: vi.fn(),
+        newGame: vi.fn(),
+        resign: vi.fn()
+      })
+      const connection = createFakeConnection()
+      mockLobbyToConnect(connection, 'w')
+      render(<OnlineChessGame />)
+      fireEvent.click(screen.getByText('connect'))
+
+      expect(screen.getByRole('button', { name: /surrender/i })).toBeDisabled()
+    })
   })
 
   it('forwards invitePeerId/onInviteSettled to the lobby as autoJoinPeerId/onAutoJoinSettled', () => {

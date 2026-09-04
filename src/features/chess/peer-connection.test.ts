@@ -168,6 +168,27 @@ describe('connection lifecycle', () => {
     expect(resetListener).toHaveBeenCalledTimes(1)
   })
 
+  it('dispatches incoming resign messages to onResign listeners', () => {
+    const { conn, connection } = connectedPair()
+    const resignListener = vi.fn()
+    connection.onResign(resignListener)
+
+    conn.emit('data', { type: 'resign' })
+
+    expect(resignListener).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops notifying an unsubscribed resign listener', () => {
+    const { conn, connection } = connectedPair()
+    const resignListener = vi.fn()
+    const unsubscribe = connection.onResign(resignListener)
+    unsubscribe()
+
+    conn.emit('data', { type: 'resign' })
+
+    expect(resignListener).not.toHaveBeenCalled()
+  })
+
   it('moves to Disconnected when the connection closes', () => {
     const { conn, connection } = connectedPair()
 
@@ -187,17 +208,19 @@ describe('connection lifecycle', () => {
     })
   })
 
-  it('sends moves and resets through the underlying connection', () => {
+  it('sends moves, resets, and resignations through the underlying connection', () => {
     const { conn, connection } = connectedPair()
 
     connection.sendMove({ from: 'e2', to: 'e4' })
     connection.sendReset()
+    connection.sendResign()
 
     expect(conn.send).toHaveBeenNthCalledWith(1, {
       type: 'move',
       move: { from: 'e2', to: 'e4' }
     })
     expect(conn.send).toHaveBeenNthCalledWith(2, { type: 'reset' })
+    expect(conn.send).toHaveBeenNthCalledWith(3, { type: 'resign' })
   })
 
   it('closes the connection and destroys the peer', () => {
@@ -228,6 +251,7 @@ describe('sending before a connection exists', () => {
 
     expect(() => connection.sendMove({ from: 'e2', to: 'e4' })).not.toThrow()
     expect(() => connection.sendReset()).not.toThrow()
+    expect(() => connection.sendResign()).not.toThrow()
     expect(() => connection.close()).not.toThrow()
   })
 })

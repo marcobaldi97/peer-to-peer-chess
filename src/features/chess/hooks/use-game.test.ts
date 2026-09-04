@@ -37,6 +37,7 @@ function buildSnapshot(overrides: Partial<GameSnapshot> = {}): GameSnapshot {
     players: buildPlayers(),
     pgn: '',
     history: [],
+    winner: null,
     ...overrides
   }
 }
@@ -46,7 +47,8 @@ function createMockGameInstance(snapshot: GameSnapshot) {
     subscribe: vi.fn(() => vi.fn()),
     getSnapshot: vi.fn(() => snapshot),
     submitMove: vi.fn(() => true),
-    reset: vi.fn()
+    reset: vi.fn(),
+    resign: vi.fn()
   }
 }
 
@@ -218,6 +220,16 @@ describe('useGame', () => {
 
     expect(createPlayers).toHaveBeenCalledWith(true)
     expect(mockGameInstance.reset).toHaveBeenCalledWith(snapshot.players)
+  })
+
+  it('resign delegates to Game#resign with the given color', () => {
+    const { result } = renderHook(() => useGame(false))
+
+    act(() => {
+      result.current.resign('b')
+    })
+
+    expect(mockGameInstance.resign).toHaveBeenCalledWith('b')
   })
 
   it('resets the game with fresh players when vsComputer changes after mount', () => {

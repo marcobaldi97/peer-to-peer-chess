@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from 'react'
 import type { Color } from 'chess.js'
 import { TriangleAlert } from 'lucide-react'
 import { Button } from 'components/ui/button'
+import { ConfirmDialog } from 'components/ui/confirm-dialog'
 import { ConnectionStatus, type PeerConnection } from '../peer-connection'
 import { useNetGame } from '../hooks/use-net-game'
 import { ChessBoard } from './chess-board'
@@ -22,10 +23,11 @@ function NetworkChessBoard({
     connection.subscribe,
     connection.getSnapshot
   )
-  const { snapshot, onPieceDrop, canDragPiece, newGame } = useNetGame(
+  const { snapshot, onPieceDrop, canDragPiece, newGame, resign } = useNetGame(
     connection,
     localColor
   )
+  const [confirmingResign, setConfirmingResign] = useState(false)
 
   // TODO: on reconnect, overwrite this side's game state from the host
   // (the host is the source of truth) instead of leaving the player stuck —
@@ -69,6 +71,15 @@ function NetworkChessBoard({
           New Game
         </Button>
         <Button
+          variant="secondary"
+          size="lg"
+          className="flex-1"
+          onClick={() => setConfirmingResign(true)}
+          disabled={snapshot.isGameOver}
+        >
+          Surrender
+        </Button>
+        <Button
           variant="primary"
           size="lg"
           className="flex-1"
@@ -77,6 +88,19 @@ function NetworkChessBoard({
           Leave Game
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={confirmingResign}
+        title="Surrender the game?"
+        description="This ends the game immediately and counts as a loss."
+        confirmLabel="Yes, surrender"
+        cancelLabel="Cancel"
+        onCancel={() => setConfirmingResign(false)}
+        onConfirm={() => {
+          setConfirmingResign(false)
+          resign()
+        }}
+      />
     </div>
   )
 }

@@ -67,7 +67,8 @@ describe('Game', () => {
       isGameOver: false,
       players,
       pgn: 'mock-pgn',
-      history: []
+      history: [],
+      winner: null
     })
   })
 
@@ -86,6 +87,13 @@ describe('Game', () => {
     expect(new Game(createPlayers(false)).getSnapshot().status).toBe(
       GameStatus.Checkmate
     )
+  })
+
+  it('sets the winner to the opposite color of the side with no legal moves on checkmate', () => {
+    currentMockChess.isCheckmate.mockReturnValue(true)
+    currentMockChess.turn.mockReturnValue('w')
+
+    expect(new Game(createPlayers(false)).getSnapshot().winner).toBe('b')
   })
 
   it('reports Stalemate', () => {
@@ -168,6 +176,63 @@ describe('Game', () => {
       expect(game.submitMove('w', { from: 'e2', to: 'e4' })).toBe(false)
       expect(listener).not.toHaveBeenCalled()
     })
+
+    it('returns false and does not call chess.move once the game has been resigned', () => {
+      const game = new Game(createPlayers(false))
+      game.resign('w')
+
+      expect(game.submitMove('b', { from: 'e7', to: 'e5' })).toBe(false)
+      expect(currentMockChess.move).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('resign', () => {
+    it('marks the game over with the opposite color as winner', () => {
+      const game = new Game(createPlayers(false))
+      const listener = vi.fn()
+      game.subscribe(listener)
+
+      game.resign('w')
+
+      expect(game.getSnapshot()).toMatchObject({
+        status: GameStatus.Resignation,
+        isGameOver: true,
+        winner: 'b'
+      })
+      expect(listener).toHaveBeenCalledTimes(1)
+    })
+
+    it('sets white as winner when black resigns', () => {
+      const game = new Game(createPlayers(false))
+
+      game.resign('b')
+
+      expect(game.getSnapshot().winner).toBe('w')
+    })
+
+    it('is a no-op when the game has already been resigned', () => {
+      const game = new Game(createPlayers(false))
+      game.resign('w')
+      const listener = vi.fn()
+      game.subscribe(listener)
+
+      game.resign('b')
+
+      expect(game.getSnapshot().winner).toBe('b')
+      expect(listener).not.toHaveBeenCalled()
+    })
+
+    it('is a no-op when the game is already over for another reason', () => {
+      currentMockChess.isGameOver.mockReturnValue(true)
+      const game = new Game(createPlayers(false))
+      const listener = vi.fn()
+      game.subscribe(listener)
+
+      game.resign('w')
+
+      expect(game.getSnapshot().status).not.toBe(GameStatus.Resignation)
+      expect(listener).not.toHaveBeenCalled()
+    })
   })
 
   describe('subscribe', () => {
@@ -197,6 +262,7 @@ describe('Game', () => {
         players: createPlayers(false),
         pgn: '',
         history: [],
+        winner: null,
         ...overrides
       }
     }
@@ -241,6 +307,18 @@ describe('Game', () => {
       game.reset(newPlayers)
 
       expect(game.getSnapshot().players).toBe(newPlayers)
+    })
+
+    it('clears a prior resignation', () => {
+      const game = new Game(createPlayers(false))
+      game.resign('w')
+
+      game.reset()
+
+      expect(game.getSnapshot()).toMatchObject({
+        status: GameStatus.InProgress,
+        winner: null
+      })
     })
   })
 })

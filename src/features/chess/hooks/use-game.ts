@@ -26,6 +26,7 @@ type UseGameResult = {
   onPieceDrop: (args: PieceDropHandlerArgs) => boolean
   canDragPiece: (args: PieceHandlerArgs) => boolean
   newGame: () => void
+  resign: (color: Color) => void
 }
 
 export function useGame(vsComputer: boolean): UseGameResult {
@@ -94,6 +95,8 @@ export function useGame(vsComputer: boolean): UseGameResult {
     [game, vsComputer]
   )
 
+  const resign = useCallback((color: Color) => game.resign(color), [game])
+
   useEffect(() => {
     if (vsComputer === currentGamemode.current) return
 
@@ -102,5 +105,5 @@ export function useGame(vsComputer: boolean): UseGameResult {
     currentGamemode.current = vsComputer
   }, [vsComputer, setGame, newGame])
 
-  return { snapshot, onPieceDrop, canDragPiece, newGame }
+  return { snapshot, onPieceDrop, canDragPiece, newGame, resign }
 }

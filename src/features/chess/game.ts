@@ -6,7 +6,8 @@ export enum GameStatus {
   Check = 'check',
   Checkmate = 'checkmate',
   Stalemate = 'stalemate',
-  Draw = 'draw'
+  Draw = 'draw',
+  Resignation = 'resignation'
 }
 
 export enum PromotionPiece {
@@ -24,9 +25,14 @@ export type GameSnapshot = {
   players: Record<Color, Player>
   pgn: string
   history: Move[]
+  winner: Color | null
 }
 
 type Listener = () => void
+
+function opponentOf(color: Color): Color {
+  return color === 'w' ? 'b' : 'w'
+}
 
 export function canDragPiece(snapshot: GameSnapshot, color: Color): boolean {
   if (snapshot.isGameOver) return false
@@ -50,6 +56,13 @@ export function statusText(snapshot: GameSnapshot, turnPlayer: Player): string {
       return 'Draw'
     case GameStatus.Check:
       return `${turnPlayer.name} ${isYou ? 'are' : 'is'} in check`
+    case GameStatus.Resignation: {
+      const winnerPlayer = snapshot.players[snapshot.winner as Color]
+
+      return `${winnerPlayer.name} ${
+        winnerPlayer.name === 'You' ? 'win' : 'wins'
+      } by resignation`
+    }
     default:
       return isYou ? 'You are to move' : `${turnPlayer.name} to move`
   }
@@ -69,6 +82,7 @@ export class Game {
   private players: Record<Color, Player>
   private listeners = new Set<Listener>()
   private snapshot: GameSnapshot
+  private resignedBy: Color | null = null
 
   constructor(players: Record<Color, Player>) {
     this.players = players
@@ -87,7 +101,7 @@ export class Game {
     color: Color,
     move: { from: Square; to: Square; promotion?: PromotionPiece }
   ): boolean {
-    if (this.chess.isGameOver()) return false
+    if (this.resignedBy !== null || this.chess.isGameOver()) return false
 
     if (this.chess.turn() !== color) return false
 
@@ -106,9 +120,17 @@ export class Game {
     return true
   }
 
+  resign(color: Color): void {
+    if (this.resignedBy !== null || this.chess.isGameOver()) return
+
+    this.resignedBy = color
+    this.emit()
+  }
+
   reset(players: Record<Color, Player> = this.players): void {
     this.chess = new Chess()
     this.players = players
+    this.resignedBy = null
     this.emit()
   }
 
@@ -119,9 +141,15 @@ export class Game {
 
   private computeSnapshot(): GameSnapshot {
     let status: GameStatus = GameStatus.InProgress
+    let winner: Color | null = null
 
-    if (this.chess.isCheckmate()) status = GameStatus.Checkmate
-    else if (this.chess.isStalemate()) status = GameStatus.Stalemate
+    if (this.resignedBy !== null) {
+      status = GameStatus.Resignation
+      winner = opponentOf(this.resignedBy)
+    } else if (this.chess.isCheckmate()) {
+      status = GameStatus.Checkmate
+      winner = opponentOf(this.chess.turn())
+    } else if (this.chess.isStalemate()) status = GameStatus.Stalemate
     else if (this.chess.isDraw()) status = GameStatus.Draw
     else if (this.chess.isCheck()) status = GameStatus.Check
 
@@ -129,10 +157,11 @@ export class Game {
       fen: this.chess.fen(),
       turn: this.chess.turn(),
       status,
-      isGameOver: this.chess.isGameOver(),
+      isGameOver: this.resignedBy !== null || this.chess.isGameOver(),
       players: this.players,
       pgn: this.chess.pgn(),
-      history: this.chess.history({ verbose: true })
+      history: this.chess.history({ verbose: true }),
+      winner
     }
   }
 }

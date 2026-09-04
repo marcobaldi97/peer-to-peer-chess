@@ -22,17 +22,22 @@ export type RemoteMove = {
   promotion?: PromotionPiece
 }
 
-type RemoteMessage = { type: 'move'; move: RemoteMove } | { type: 'reset' }
+type RemoteMessage =
+  | { type: 'move'; move: RemoteMove }
+  | { type: 'reset' }
+  | { type: 'resign' }
 
 type Listener = () => void
 type MoveListener = (move: RemoteMove) => void
 type ResetListener = () => void
+type ResignListener = () => void
 
 export class PeerConnection {
   private conn: DataConnection | null = null
   private listeners = new Set<Listener>()
   private moveListeners = new Set<MoveListener>()
   private resetListeners = new Set<ResetListener>()
+  private resignListeners = new Set<ResignListener>()
   private snapshot: ConnectionSnapshot = {
     status: ConnectionStatus.Connecting,
     localPeerId: null,
@@ -92,12 +97,22 @@ export class PeerConnection {
     return () => this.resetListeners.delete(listener)
   }
 
+  onResign = (listener: ResignListener): (() => void) => {
+    this.resignListeners.add(listener)
+
+    return () => this.resignListeners.delete(listener)
+  }
+
   sendMove(move: RemoteMove): void {
     this.conn?.send({ type: 'move', move } satisfies RemoteMessage)
   }
 
   sendReset(): void {
     this.conn?.send({ type: 'reset' } satisfies RemoteMessage)
+  }
+
+  sendResign(): void {
+    this.conn?.send({ type: 'resign' } satisfies RemoteMessage)
   }
 
   close(): void {
@@ -126,8 +141,10 @@ export class PeerConnection {
   private handleMessage(message: RemoteMessage): void {
     if (message.type === 'move') {
       this.moveListeners.forEach((listener) => listener(message.move))
-    } else {
+    } else if (message.type === 'reset') {
       this.resetListeners.forEach((listener) => listener())
+    } else {
+      this.resignListeners.forEach((listener) => listener())
     }
   }
 

@@ -16,6 +16,7 @@ type UseNetGameResult = {
   onPieceDrop: (args: PieceDropHandlerArgs) => boolean
   canDragPiece: (args: PieceHandlerArgs) => boolean
   newGame: () => void
+  resign: () => void
 }
 
 function opponentOf(color: Color): Color {
@@ -55,6 +56,11 @@ export function useNetGame(
 
   useEffect(() => connection.onReset(() => game.reset()), [connection, game])
 
+  useEffect(
+    () => connection.onResign(() => game.resign(opponentOf(localColor))),
+    [connection, game, localColor]
+  )
+
   const onPieceDrop = useCallback(
     ({ piece, sourceSquare, targetSquare }: PieceDropHandlerArgs): boolean => {
       if (!targetSquare) return false
@@ -88,5 +94,10 @@ export function useNetGame(
     connection.sendReset()
   }, [game, connection])
 
-  return { snapshot, onPieceDrop, canDragPiece, newGame }
+  const resign = useCallback(() => {
+    game.resign(localColor)
+    connection.sendResign()
+  }, [game, connection, localColor])
+
+  return { snapshot, onPieceDrop, canDragPiece, newGame, resign }
 }

@@ -6,6 +6,7 @@ vi.mock('react-chessboard', () => ({ Chessboard: vi.fn(() => null) }))
 vi.mock('./components/online-chess-game', () => ({
   default: vi.fn(() => <div>online chess game</div>)
 }))
+vi.mock('./stockfish-engine', () => ({ createStockfishEngine: vi.fn() }))
 vi.mock('react-sounds', async () => {
   const { useState } = await import('react')
   return {
@@ -20,6 +21,7 @@ import { Chessboard } from 'react-chessboard'
 import { Game, createPlayers, GameStatus, type GameSnapshot } from './game'
 import { PlayerKind, type Player } from './players'
 import OnlineChessGame from './components/online-chess-game'
+import { createStockfishEngine } from './stockfish-engine'
 import ChessGame, { statusText } from './index'
 
 function buildPlayers(): Record<'w' | 'b', Player> {
@@ -38,16 +40,18 @@ function buildSnapshot(overrides: Partial<GameSnapshot> = {}): GameSnapshot {
     players: buildPlayers(),
     pgn: '',
     history: [],
+    winner: null,
     ...overrides
   }
 }
 
 function createMockGameInstance(snapshot: GameSnapshot) {
   return {
-    subscribe: vi.fn(() => vi.fn()),
+    subscribe: vi.fn<[() => void], () => void>(() => vi.fn()),
     getSnapshot: vi.fn(() => snapshot),
     submitMove: vi.fn(() => true),
-    reset: vi.fn()
+    reset: vi.fn(),
+    resign: vi.fn()
   }
 }
 
@@ -80,6 +84,32 @@ describe('statusText', () => {
       expect(statusText(buildSnapshot({ status }), you)).toBe(expected)
     }
   )
+
+  it('formats Resignation using the winning player looked up from snapshot.winner', () => {
+    const snapshot = buildSnapshot({
+      status: GameStatus.Resignation,
+      winner: 'w'
+    })
+
+    expect(statusText(snapshot, snapshot.players.b)).toBe(
+      'Player 1 wins by resignation'
+    )
+  })
+
+  it('uses "win" grammar for Resignation when the winning player is "You"', () => {
+    const snapshot = buildSnapshot({
+      status: GameStatus.Resignation,
+      winner: 'w',
+      players: {
+        w: you,
+        b: { id: 'opponent', name: 'Opponent', kind: PlayerKind.RemoteHuman }
+      }
+    })
+
+    expect(statusText(snapshot, snapshot.players.b)).toBe(
+      'You win by resignation'
+    )
+  })
 })
 
 describe('<ChessGame />', () => {
@@ -151,6 +181,84 @@ describe('<ChessGame />', () => {
     fireEvent.click(screen.getByRole('button', { name: /new game/i }))
 
     expect(mockGameInstance.reset).toHaveBeenCalledWith(players)
+  })
+
+  describe('Surrender', () => {
+    it('asks for confirmation in a dialog before resigning, and cancelling closes it without resigning', () => {
+      render(<ChessGame />)
+
+      fireEvent.click(screen.getByRole('button', { name: /surrender/i }))
+
+      const dialog = screen.getByRole('alertdialog')
+      expect(
+        within(dialog).getByText('Surrender the game?')
+      ).toBeInTheDocument()
+
+      fireEvent.click(within(dialog).getByRole('button', { name: /cancel/i }))
+
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+      expect(mockGameInstance.resign).not.toHaveBeenCalled()
+    })
+
+    it('resigns the side to move when confirmed in the dialog, ending the game and showing the resignation status', () => {
+      render(<ChessGame />)
+      const listener = mockGameInstance.subscribe.mock.calls[0][0]
+
+      fireEvent.click(screen.getByRole('button', { name: /surrender/i }))
+
+      const dialog = screen.getByRole('alertdialog')
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: /yes, surrender/i })
+      )
+
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+      expect(mockGameInstance.resign).toHaveBeenCalledWith('w')
+
+      act(() => {
+        mockGameInstance.getSnapshot.mockReturnValue(
+          buildSnapshot({
+            status: GameStatus.Resignation,
+            isGameOver: true,
+            winner: 'b'
+          })
+        )
+        listener()
+      })
+
+      expect(screen.getByTestId('game-status')).toHaveTextContent(
+        'Player 2 wins by resignation'
+      )
+    })
+
+    it('disables the button once the game is over', () => {
+      mockGameInstance.getSnapshot.mockReturnValue(
+        buildSnapshot({ isGameOver: true })
+      )
+
+      render(<ChessGame />)
+
+      expect(screen.getByRole('button', { name: /surrender/i })).toBeDisabled()
+    })
+
+    it("disables the button while it is the computer's turn", () => {
+      vi.mocked(createStockfishEngine).mockReturnValue({
+        getBestMove: vi.fn(() => new Promise(() => {})),
+        terminate: vi.fn()
+      } as unknown as ReturnType<typeof createStockfishEngine>)
+      mockGameInstance.getSnapshot.mockReturnValue(
+        buildSnapshot({
+          turn: 'b',
+          players: {
+            w: { id: 'w1', name: 'Player 1', kind: PlayerKind.LocalHuman },
+            b: { id: 'computer', name: 'Computer', kind: PlayerKind.Computer }
+          }
+        })
+      )
+
+      render(<ChessGame />)
+
+      expect(screen.getByRole('button', { name: /surrender/i })).toBeDisabled()
+    })
   })
 
   describe('mode selection', () => {
