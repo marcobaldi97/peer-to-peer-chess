@@ -22,10 +22,16 @@ function NetworkChessBoard({
     connection.subscribe,
     connection.getSnapshot
   )
-  const { snapshot, onPieceDrop, canDragPiece, newGame } = useNetGame(
+  const { snapshot, onPieceDrop, canDragPiece, newGame, resign } = useNetGame(
     connection,
     localColor
   )
+
+  const handleResign = () => {
+    if (window.confirm('Are you sure you want to surrender?')) {
+      resign()
+    }
+  }
 
   // TODO: on reconnect, overwrite this side's game state from the host
   // (the host is the source of truth) instead of leaving the player stuck —
@@ -67,6 +73,15 @@ function NetworkChessBoard({
           onClick={newGame}
         >
           New Game
+        </Button>
+        <Button
+          variant="secondary"
+          size="lg"
+          className="flex-1"
+          onClick={handleResign}
+          disabled={snapshot.isGameOver}
+        >
+          Surrender
         </Button>
         <Button
           variant="primary"

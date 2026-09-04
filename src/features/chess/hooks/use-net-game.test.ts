@@ -27,6 +27,7 @@ function buildSnapshot(overrides: Partial<GameSnapshot> = {}): GameSnapshot {
     players: buildPlayers(),
     pgn: '',
     history: [],
+    winner: null,
     ...overrides
   }
 }
@@ -36,19 +37,23 @@ function createMockGameInstance(snapshot: GameSnapshot) {
     subscribe: vi.fn(() => vi.fn()),
     getSnapshot: vi.fn(() => snapshot),
     submitMove: vi.fn(() => true),
-    reset: vi.fn()
+    reset: vi.fn(),
+    resign: vi.fn()
   }
 }
 
 type MoveListener = Parameters<PeerConnection['onMove']>[0]
 type ResetListener = Parameters<PeerConnection['onReset']>[0]
+type ResignListener = Parameters<PeerConnection['onResign']>[0]
 
 function createMockConnection() {
   return {
     onMove: vi.fn<[MoveListener], () => void>(() => vi.fn()),
     onReset: vi.fn<[ResetListener], () => void>(() => vi.fn()),
+    onResign: vi.fn<[ResignListener], () => void>(() => vi.fn()),
     sendMove: vi.fn(),
-    sendReset: vi.fn()
+    sendReset: vi.fn(),
+    sendResign: vi.fn()
   }
 }
 
@@ -128,6 +133,29 @@ describe('useNetGame', () => {
       act(() => resetHandler())
 
       expect(mockGameInstance.reset).toHaveBeenCalledWith()
+    })
+  })
+
+  describe('incoming resign', () => {
+    it("resigns the opponent's color when the remote peer resigns", () => {
+      renderHook(() => useNetGame(connection as unknown as PeerConnection, 'w'))
+
+      const resignHandler = connection.onResign.mock.calls[0][0]
+      act(() => resignHandler())
+
+      expect(mockGameInstance.resign).toHaveBeenCalledWith('b')
+    })
+
+    it('unsubscribes the resign listener on unmount', () => {
+      const unsubscribe = vi.fn()
+      connection.onResign.mockReturnValue(unsubscribe)
+
+      const { unmount } = renderHook(() =>
+        useNetGame(connection as unknown as PeerConnection, 'w')
+      )
+      unmount()
+
+      expect(unsubscribe).toHaveBeenCalled()
     })
   })
 
@@ -245,5 +273,16 @@ describe('useNetGame', () => {
 
     expect(mockGameInstance.reset).toHaveBeenCalledWith()
     expect(connection.sendReset).toHaveBeenCalled()
+  })
+
+  it('resign resigns the local color and broadcasts a resignation', () => {
+    const { result } = renderHook(() =>
+      useNetGame(connection as unknown as PeerConnection, 'b')
+    )
+
+    act(() => result.current.resign())
+
+    expect(mockGameInstance.resign).toHaveBeenCalledWith('b')
+    expect(connection.sendResign).toHaveBeenCalled()
   })
 })

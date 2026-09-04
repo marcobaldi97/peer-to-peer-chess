@@ -40,8 +40,10 @@ function createFakeConnection(): {
     getSnapshot: vi.fn(() => snapshot),
     onMove: vi.fn(() => vi.fn()),
     onReset: vi.fn(() => vi.fn()),
+    onResign: vi.fn(() => vi.fn()),
     sendMove: vi.fn(),
     sendReset: vi.fn(),
+    sendResign: vi.fn(),
     close: vi.fn()
   } as unknown as PeerConnection
 

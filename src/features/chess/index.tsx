@@ -13,6 +13,7 @@ import {
 import SiteFooter from 'components/site-footer'
 import logo from 'assets/logo.png'
 import { statusText } from './game'
+import { PlayerKind } from './players'
 import { useGame } from './hooks/use-game'
 import { ChessBoard } from './components/chess-board'
 import OnlineChessGame from './components/online-chess-game'
@@ -37,7 +38,18 @@ const modeOptions: SegmentedControlOption<Mode>[] = [
 ]
 
 function LocalChessGame({ vsComputer }: { vsComputer: boolean }) {
-  const { snapshot, onPieceDrop, canDragPiece, newGame } = useGame(vsComputer)
+  const { snapshot, onPieceDrop, canDragPiece, newGame, resign } =
+    useGame(vsComputer)
+
+  const canResign =
+    !snapshot.isGameOver &&
+    snapshot.players[snapshot.turn].kind === PlayerKind.LocalHuman
+
+  const handleResign = () => {
+    if (window.confirm('Are you sure you want to surrender?')) {
+      resign(snapshot.turn)
+    }
+  }
 
   return (
     <div className="flex flex-1 flex-col justify-center gap-4">
@@ -57,9 +69,25 @@ function LocalChessGame({ vsComputer }: { vsComputer: boolean }) {
         />
       </div>
 
-      <Button variant="primary" size="block" onClick={newGame}>
-        New Game
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          variant="primary"
+          size="lg"
+          className="flex-1"
+          onClick={newGame}
+        >
+          New Game
+        </Button>
+        <Button
+          variant="secondary"
+          size="lg"
+          className="flex-1"
+          onClick={handleResign}
+          disabled={!canResign}
+        >
+          Surrender
+        </Button>
+      </div>
     </div>
   )
 }
