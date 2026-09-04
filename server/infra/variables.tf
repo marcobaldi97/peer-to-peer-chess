@@ -29,7 +29,7 @@ variable "memory_size" {
 variable "timeout" {
   description = "Lambda function timeout, in seconds."
   type        = number
-  default     = 10
+  default     = 5
 }
 
 variable "reserved_concurrency" {
