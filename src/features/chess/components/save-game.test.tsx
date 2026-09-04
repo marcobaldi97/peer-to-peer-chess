@@ -98,7 +98,7 @@ describe('<SaveGame />', () => {
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
 
     const [url, options] = vi.mocked(fetch).mock.calls[0]
-    expect(url).toBe('http://localhost:3000/saved-games')
+    expect(url).toBe('http://localhost:3000/games')
     expect(options?.method).toBe('POST')
     expect(options?.headers).toMatchObject({
       'Content-Type': 'application/json'

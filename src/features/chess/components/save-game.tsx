@@ -34,7 +34,7 @@ export function SaveGame({ snapshot }: SaveGameProps) {
     setStatus('saving')
 
     try {
-      const response = await fetch(`${API_BASE_URL}/saved-games`, {
+      const response = await fetch(`${API_BASE_URL}/games`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

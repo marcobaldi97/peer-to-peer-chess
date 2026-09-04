@@ -2,7 +2,7 @@ import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { SaveGameDto } from './dto/save-game.dto';
 import { SavedGamesService } from './saved-games.service';
 
-@Controller('saved-games')
+@Controller('games')
 export class SavedGamesController {
   constructor(private readonly savedGamesService: SavedGamesService) {}
 

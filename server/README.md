@@ -22,7 +22,7 @@ but should be locked down before this is exposed publicly.
 
 ## The endpoint
 
-`POST /saved-games`
+`POST /games`
 
 Body (JSON):
 
