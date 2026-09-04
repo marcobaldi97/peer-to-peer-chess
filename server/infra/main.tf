@@ -46,7 +46,7 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
 
 resource "aws_cloudwatch_log_group" "lambda" {
   name              = "/aws/lambda/${var.function_name}"
-  retention_in_days = 14
+  retention_in_days = 7
   tags              = var.tags
 }
 

@@ -40,7 +40,7 @@ variable "reserved_concurrency" {
     throttled by Lambda rather than running unbounded.
   EOT
   type        = number
-  default     = 5
+  default     = 10
 }
 
 variable "api_throttling_rate_limit" {
@@ -51,13 +51,13 @@ variable "api_throttling_rate_limit" {
     (and bill) the Lambda.
   EOT
   type        = number
-  default     = 5
+  default     = 20
 }
 
 variable "api_throttling_burst_limit" {
   description = "Token bucket burst capacity for the HTTP API's default stage, on top of api_throttling_rate_limit."
   type        = number
-  default     = 10
+  default     = 40
 }
 
 variable "environment_variables" {
