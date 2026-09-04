@@ -5,6 +5,7 @@ import { Button } from 'components/ui/button'
 import { ConnectionStatus, type PeerConnection } from '../peer-connection'
 import { useNetGame } from '../hooks/use-net-game'
 import { ChessBoard } from './chess-board'
+import { SaveGame } from './save-game'
 import OnlineLobby from './online-lobby'
 
 type Session = { connection: PeerConnection; localColor: Color }
@@ -58,6 +59,8 @@ function NetworkChessBoard({
           </span>
         </div>
       )}
+
+      <SaveGame snapshot={snapshot} />
 
       <div className="flex gap-2">
         <Button
