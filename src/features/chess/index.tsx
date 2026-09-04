@@ -17,6 +17,7 @@ import { statusText } from './game'
 import { PlayerKind } from './players'
 import { useGame } from './hooks/use-game'
 import { ChessBoard } from './components/chess-board'
+import { SaveGame } from './components/save-game'
 import OnlineChessGame from './components/online-chess-game'
 
 const preloadSounds: LibrarySoundName[] = [
@@ -64,6 +65,8 @@ function LocalChessGame({ vsComputer }: { vsComputer: boolean }) {
           hideStatusWhenInProgress
         />
       </div>
+
+      <SaveGame snapshot={snapshot} />
 
       <div className="flex gap-2">
         <Button
