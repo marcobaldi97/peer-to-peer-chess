@@ -60,6 +60,51 @@ variable "api_throttling_burst_limit" {
   default     = 40
 }
 
+variable "cognito_domain_prefix" {
+  description = <<-EOT
+    Prefix for the Cognito Hosted UI domain, giving
+    https://<prefix>.auth.<region>.amazoncognito.com. Must be globally unique
+    across all AWS accounts, so namespace it (e.g. "p2p-chess-marcobaldi").
+  EOT
+  type        = string
+}
+
+variable "callback_urls" {
+  description = <<-EOT
+    OAuth redirect URIs the Cognito app client will accept. The frontend derives
+    its redirect URI from window.location.origin plus a trailing slash, so these
+    must carry that trailing slash to match exactly.
+  EOT
+  type        = list(string)
+  default     = ["https://chess.marcobaldi.me/", "http://localhost:5173/"]
+}
+
+variable "logout_urls" {
+  description = "Post-logout redirect URIs. Cognito requires logout_uri to match one of these exactly."
+  type        = list(string)
+  default     = ["https://chess.marcobaldi.me/", "http://localhost:5173/"]
+}
+
+variable "cors_allowed_origins" {
+  description = <<-EOT
+    Origins allowed by the HTTP API's CORS configuration. Unlike the callback
+    URLs these are scheme+host+port only — no trailing slash.
+  EOT
+  type        = list(string)
+  default     = ["https://chess.marcobaldi.me", "http://localhost:5173"]
+}
+
+variable "google_client_id" {
+  description = "OAuth client ID from the Google Cloud Console (created by hand — see README)."
+  type        = string
+}
+
+variable "google_client_secret" {
+  description = "OAuth client secret from the Google Cloud Console."
+  type        = string
+  sensitive   = true
+}
+
 variable "environment_variables" {
   description = "Extra environment variables to pass to the Lambda function."
   type        = map(string)

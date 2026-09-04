@@ -68,7 +68,14 @@ resource "aws_lambda_function" "api" {
   source_code_hash = filebase64sha256(var.lambda_zip_path)
 
   environment {
-    variables = var.environment_variables
+    # Merged rather than left to var.environment_variables so the Cognito config
+    # the guard needs can't be forgotten at apply time. Note AWS_REGION is a
+    # reserved Lambda key and must not be set here — aws-jwt-verify derives the
+    # region from the user pool id anyway.
+    variables = merge(var.environment_variables, {
+      COGNITO_USER_POOL_ID = aws_cognito_user_pool.main.id
+      COGNITO_CLIENT_ID    = aws_cognito_user_pool_client.spa.id
+    })
   }
 
   depends_on = [
@@ -84,7 +91,24 @@ resource "aws_lambda_function" "api" {
 resource "aws_apigatewayv2_api" "http_api" {
   name          = "${var.function_name}-http-api"
   protocol_type = "HTTP"
-  tags          = var.tags
+
+  # Required once the API is behind a JWT authorizer. Sending an Authorization
+  # header makes the request non-simple, so the browser first sends an OPTIONS
+  # preflight WITHOUT that header — which would hit $default, fail the
+  # authorizer with a 401, and surface as an opaque CORS error with the real
+  # POST never being sent. With CORS configured here, API Gateway answers
+  # preflight itself and never invokes the route or the authorizer.
+  #
+  # Nest's own enableCors() stays in place for local dev; API Gateway ignores
+  # integration-returned CORS headers when it has its own configuration.
+  cors_configuration {
+    allow_origins = var.cors_allowed_origins
+    allow_methods = ["POST", "OPTIONS"]
+    allow_headers = ["authorization", "content-type"]
+    max_age       = 3600
+  }
+
+  tags = var.tags
 }
 
 resource "aws_apigatewayv2_integration" "lambda" {
@@ -94,10 +118,34 @@ resource "aws_apigatewayv2_integration" "lambda" {
   payload_format_version = "2.0"
 }
 
+# Validates Cognito ID tokens at the edge, so unauthenticated requests are
+# rejected before the Lambda is ever invoked (and billed). JWT authorizers are
+# evaluated inside API Gateway at no extra charge, unlike Lambda authorizers.
+resource "aws_apigatewayv2_authorizer" "cognito" {
+  api_id           = aws_apigatewayv2_api.http_api.id
+  name             = "${var.function_name}-cognito-jwt"
+  authorizer_type  = "JWT"
+  identity_sources = ["$request.header.Authorization"]
+
+  jwt_configuration {
+    # The ID token's `aud` is the app client id. (Access tokens use `client_id`
+    # instead and carry no email claim, which is why the SPA sends the ID token.)
+    audience = [aws_cognito_user_pool_client.spa.id]
+    # The `endpoint` attribute has no scheme, hence the explicit https://.
+    issuer = "https://${aws_cognito_user_pool.main.endpoint}"
+  }
+}
+
+# NOTE: attaching the authorizer to $default protects the ENTIRE API, since
+# $default is the catch-all. That is intended here — the whole surface is
+# POST /games and saving requires sign-in. Any future public endpoint needs its
+# own route with authorization_type = "NONE"; more specific routes win.
 resource "aws_apigatewayv2_route" "default" {
-  api_id    = aws_apigatewayv2_api.http_api.id
-  route_key = "$default"
-  target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  api_id             = aws_apigatewayv2_api.http_api.id
+  route_key          = "$default"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
 }
 
 resource "aws_apigatewayv2_stage" "default" {
