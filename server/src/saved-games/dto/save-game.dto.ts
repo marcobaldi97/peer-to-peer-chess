@@ -1,11 +1,9 @@
-import { IsEmail, IsISO8601, IsString } from 'class-validator';
+import { IsISO8601, IsString } from 'class-validator';
 
-// `email` is a plain, unauthenticated stand-in identity for now.
-// Swap this for an authenticated user (e.g. via AWS Cognito) later.
+// The player's identity is taken from the verified Cognito ID token, never from
+// the request body. An `email` sent by an older client is silently stripped by
+// the global ValidationPipe's `whitelist` option.
 export class SaveGameDto {
-  @IsEmail()
-  email!: string;
-
   @IsString()
   pgn!: string;
 

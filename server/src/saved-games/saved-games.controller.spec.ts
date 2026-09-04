@@ -19,14 +19,15 @@ describe('SavedGamesController', () => {
   });
 
   it('saves a game and returns a confirmation with an id', () => {
-    const result = controller.save({
-      email: 'player@example.com',
-      pgn: '1. e4 e5',
-      status: 'checkmate',
-      playedAt: '2026-01-01T00:00:00.000Z',
-    });
+    const result = controller.save(
+      {
+        pgn: '1. e4 e5',
+        status: 'checkmate',
+        playedAt: '2026-01-01T00:00:00.000Z',
+      },
+      { id: 'cognito-sub-123', email: 'player@example.com' },
+    );
 
-    expect(result.email).toBe('player@example.com');
     expect(result.id).toEqual(expect.any(String));
     expect(result.savedAt).toEqual(expect.any(String));
   });

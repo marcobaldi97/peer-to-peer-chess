@@ -1,4 +1,8 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  CurrentUser,
+  type AuthenticatedUser,
+} from '../auth/current-user.decorator';
 import { SaveGameDto } from './dto/save-game.dto';
 import { SavedGamesService } from './saved-games.service';
 
@@ -8,9 +12,9 @@ export class SavedGamesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  save(@Body() dto: SaveGameDto) {
-    const { id, email, savedAt } = this.savedGamesService.save(dto);
+  save(@Body() dto: SaveGameDto, @CurrentUser() user: AuthenticatedUser) {
+    const { id, savedAt } = this.savedGamesService.save(dto, user);
 
-    return { id, email, savedAt };
+    return { id, savedAt };
   }
 }
