@@ -1,49 +1,88 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { Button } from 'components/ui/button'
-import { Input } from 'components/ui/input'
+import { useAuthSession } from 'features/auth'
 import type { GameSnapshot } from '../game'
 
-// No auth yet — the backend takes this email as a stand-in identity.
-// A future iteration should swap it for an authenticated user (AWS Cognito).
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-type SaveStatus = 'idle' | 'saving' | 'success' | 'error'
+type SaveStatus = 'idle' | 'saving' | 'success' | 'error' | 'expired'
 
 type SaveGameProps = {
   snapshot: GameSnapshot
 }
 
+function SignInPrompt({
+  message,
+  testId,
+  isLoading,
+  onSignIn
+}: {
+  message: string
+  testId?: string
+  isLoading: boolean
+  onSignIn: () => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <p data-testid={testId} className="text-[13px] text-text/55">
+        {message}
+      </p>
+      <Button
+        type="button"
+        variant="primary"
+        disabled={isLoading}
+        onClick={onSignIn}
+      >
+        Sign in
+      </Button>
+    </div>
+  )
+}
+
 export function SaveGame({ snapshot }: SaveGameProps) {
-  const [email, setEmail] = useState('')
-  const [touched, setTouched] = useState(false)
+  const { isConfigured, isLoading, isAuthenticated, idToken, signIn } =
+    useAuthSession()
   const [status, setStatus] = useState<SaveStatus>('idle')
 
   if (!snapshot.isGameOver) return null
 
-  const isEmailValid = EMAIL_PATTERN.test(email)
-  const showEmailError = touched && !isEmailValid
+  // Nothing to offer when this build has no Cognito configured.
+  if (!isConfigured) return null
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setTouched(true)
+  if (!isAuthenticated) {
+    return (
+      <SignInPrompt
+        message="Sign in to save this game."
+        isLoading={isLoading}
+        onSignIn={signIn}
+      />
+    )
+  }
 
-    if (!isEmailValid) return
-
+  const handleSave = async (): Promise<void> => {
     setStatus('saving')
 
     try {
       const response = await fetch(`${API_BASE_URL}/games`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`
+        },
         body: JSON.stringify({
-          email,
           pgn: snapshot.pgn,
           status: snapshot.status,
           playedAt: new Date().toISOString()
         })
       })
+
+      // ID tokens last an hour, so an expired one is a realistic failure — and
+      // the fix is to sign in again, not to retry.
+      if (response.status === 401) {
+        setStatus('expired')
+
+        return
+      }
 
       if (!response.ok) throw new Error('Failed to save game')
 
@@ -53,36 +92,29 @@ export function SaveGame({ snapshot }: SaveGameProps) {
     }
   }
 
-  return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-      <div className="flex gap-2">
-        <Input
-          type="email"
-          value={email}
-          onChange={(event) => {
-            setEmail(event.target.value)
-            setStatus('idle')
-          }}
-          onBlur={() => setTouched(true)}
-          placeholder="you@example.com"
-          aria-label="Email"
-          aria-invalid={showEmailError}
-          className="flex-1"
-        />
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={!isEmailValid || status === 'saving'}
-        >
-          {status === 'saving' ? 'Saving…' : 'Save Game'}
-        </Button>
-      </div>
+  if (status === 'expired') {
+    return (
+      <SignInPrompt
+        message="Your session expired. Sign in to save this game."
+        testId="save-game-expired"
+        isLoading={isLoading}
+        onSignIn={signIn}
+      />
+    )
+  }
 
-      {showEmailError && (
-        <p className="text-[13px] text-accent-700">
-          Enter a valid email address.
-        </p>
-      )}
+  return (
+    <div className="flex flex-col gap-2">
+      <Button
+        type="button"
+        variant="primary"
+        size="block"
+        disabled={status === 'saving'}
+        onClick={handleSave}
+      >
+        {status === 'saving' ? 'Saving…' : 'Save Game'}
+      </Button>
+
       {status === 'success' && (
         <p data-testid="save-game-success" className="text-[13px] text-text/55">
           Game saved!
@@ -96,6 +128,6 @@ export function SaveGame({ snapshot }: SaveGameProps) {
           Could not save the game. Please try again.
         </p>
       )}
-    </form>
+    </div>
   )
 }

@@ -1,4 +1,7 @@
+vi.mock('features/auth', () => ({ useAuthSession: vi.fn() }))
+
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { useAuthSession, type AuthSession } from 'features/auth'
 import { GameStatus, type GameSnapshot } from '../game'
 import { PlayerKind, type Player } from '../players'
 import { SaveGame } from './save-game'
@@ -24,12 +27,31 @@ function buildSnapshot(overrides: Partial<GameSnapshot> = {}): GameSnapshot {
   }
 }
 
-function fillEmail(value: string) {
-  fireEvent.change(screen.getByLabelText('Email'), { target: { value } })
+function mockSession(overrides: Partial<AuthSession> = {}) {
+  const signIn = vi.fn()
+
+  vi.mocked(useAuthSession).mockReturnValue({
+    isConfigured: true,
+    isLoading: false,
+    isAuthenticated: true,
+    email: 'player@example.com',
+    picture: null,
+    idToken: 'test-id-token',
+    signIn,
+    signOut: vi.fn(),
+    ...overrides
+  })
+
+  return { signIn }
+}
+
+function clickSave() {
+  fireEvent.click(screen.getByRole('button', { name: /save game/i }))
 }
 
 describe('<SaveGame />', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
     vi.stubGlobal('fetch', vi.fn())
   })
 
@@ -38,6 +60,8 @@ describe('<SaveGame />', () => {
   })
 
   it('renders nothing while the game is still in progress', () => {
+    mockSession()
+
     const { container } = render(
       <SaveGame
         snapshot={buildSnapshot({
@@ -50,50 +74,61 @@ describe('<SaveGame />', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('renders once the game is over', () => {
-    render(<SaveGame snapshot={buildSnapshot()} />)
+  it('renders nothing when Cognito is not configured for this build', () => {
+    mockSession({ isConfigured: false })
 
-    expect(screen.getByLabelText('Email')).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: /save game/i })
-    ).toBeInTheDocument()
+    const { container } = render(<SaveGame snapshot={buildSnapshot()} />)
+
+    expect(container).toBeEmptyDOMElement()
   })
 
-  it('shows an inline error for an invalid email and keeps the button disabled', () => {
+  it('asks a signed-out player to sign in instead of collecting an email', () => {
+    const { signIn } = mockSession({ isAuthenticated: false })
+
     render(<SaveGame snapshot={buildSnapshot()} />)
 
-    fillEmail('not-an-email')
-    fireEvent.blur(screen.getByLabelText('Email'))
+    expect(screen.getByText('Sign in to save this game.')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Email')).not.toBeInTheDocument()
 
-    expect(screen.getByText('Enter a valid email address.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /save game/i })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
+
+    expect(signIn).toHaveBeenCalledTimes(1)
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('enables the button once a valid email is entered', () => {
+  it('disables the sign in button while the session is still loading', () => {
+    mockSession({ isAuthenticated: false, isLoading: true })
+
     render(<SaveGame snapshot={buildSnapshot()} />)
 
-    fillEmail('player@example.com')
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeDisabled()
+  })
+
+  it('offers a save button with no email field once signed in', () => {
+    mockSession()
+
+    render(<SaveGame snapshot={buildSnapshot()} />)
 
     expect(
       screen.getByRole('button', { name: /save game/i })
-    ).not.toBeDisabled()
-    expect(
-      screen.queryByText('Enter a valid email address.')
-    ).not.toBeInTheDocument()
+    ).toBeInTheDocument()
+    expect(screen.queryByLabelText('Email')).not.toBeInTheDocument()
   })
 
-  it('POSTs the expected payload to the API on submit', async () => {
-    vi.mocked(fetch).mockResolvedValue({ ok: true } as Response)
-    const snapshot = buildSnapshot({
-      status: GameStatus.Stalemate,
-      pgn: '1. e4 e5 draw pgn'
-    })
+  it('POSTs the game with a bearer token and no email in the body', async () => {
+    mockSession()
+    vi.mocked(fetch).mockResolvedValue({ ok: true, status: 201 } as Response)
 
-    render(<SaveGame snapshot={snapshot} />)
+    render(
+      <SaveGame
+        snapshot={buildSnapshot({
+          status: GameStatus.Stalemate,
+          pgn: '1. e4 e5 draw pgn'
+        })}
+      />
+    )
 
-    fillEmail('player@example.com')
-    fireEvent.click(screen.getByRole('button', { name: /save game/i }))
+    clickSave()
 
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
 
@@ -101,20 +136,21 @@ describe('<SaveGame />', () => {
     expect(url).toBe('http://localhost:3000/games')
     expect(options?.method).toBe('POST')
     expect(options?.headers).toMatchObject({
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer test-id-token'
     })
 
     const body = JSON.parse(options?.body as string)
     expect(body).toMatchObject({
-      email: 'player@example.com',
       pgn: '1. e4 e5 draw pgn',
       status: GameStatus.Stalemate
     })
-    expect(typeof body.playedAt).toBe('string')
+    expect(body).not.toHaveProperty('email')
     expect(() => new Date(body.playedAt).toISOString()).not.toThrow()
   })
 
   it('shows a saving state while the request is pending, then success', async () => {
+    mockSession()
     let resolveFetch: (value: Response) => void = () => {}
     vi.mocked(fetch).mockReturnValue(
       new Promise((resolve) => {
@@ -124,14 +160,13 @@ describe('<SaveGame />', () => {
 
     render(<SaveGame snapshot={buildSnapshot()} />)
 
-    fillEmail('player@example.com')
-    fireEvent.click(screen.getByRole('button', { name: /save game/i }))
+    clickSave()
 
     expect(
       await screen.findByRole('button', { name: /saving/i })
     ).toBeDisabled()
 
-    resolveFetch({ ok: true } as Response)
+    resolveFetch({ ok: true, status: 201 } as Response)
 
     expect(await screen.findByTestId('save-game-success')).toHaveTextContent(
       'Game saved!'
@@ -139,12 +174,12 @@ describe('<SaveGame />', () => {
   })
 
   it('shows an error state when the request fails', async () => {
+    mockSession()
     vi.mocked(fetch).mockRejectedValue(new Error('network down'))
 
     render(<SaveGame snapshot={buildSnapshot()} />)
 
-    fillEmail('player@example.com')
-    fireEvent.click(screen.getByRole('button', { name: /save game/i }))
+    clickSave()
 
     expect(await screen.findByTestId('save-game-error')).toHaveTextContent(
       'Could not save the game. Please try again.'
@@ -152,28 +187,30 @@ describe('<SaveGame />', () => {
   })
 
   it('shows an error state when the response is not ok', async () => {
-    vi.mocked(fetch).mockResolvedValue({ ok: false } as Response)
+    mockSession()
+    vi.mocked(fetch).mockResolvedValue({ ok: false, status: 500 } as Response)
 
     render(<SaveGame snapshot={buildSnapshot()} />)
 
-    fillEmail('player@example.com')
-    fireEvent.click(screen.getByRole('button', { name: /save game/i }))
+    clickSave()
 
     expect(await screen.findByTestId('save-game-error')).toBeInTheDocument()
   })
 
-  it('clears a prior success/error state when the email is edited again', async () => {
-    vi.mocked(fetch).mockResolvedValue({ ok: true } as Response)
+  it('asks the player to sign in again when the token has expired', async () => {
+    const { signIn } = mockSession()
+    vi.mocked(fetch).mockResolvedValue({ ok: false, status: 401 } as Response)
 
     render(<SaveGame snapshot={buildSnapshot()} />)
 
-    fillEmail('player@example.com')
-    fireEvent.click(screen.getByRole('button', { name: /save game/i }))
+    clickSave()
 
-    expect(await screen.findByTestId('save-game-success')).toBeInTheDocument()
+    expect(await screen.findByTestId('save-game-expired')).toHaveTextContent(
+      'Your session expired. Sign in to save this game.'
+    )
 
-    fillEmail('player2@example.com')
+    fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
 
-    expect(screen.queryByTestId('save-game-success')).not.toBeInTheDocument()
+    expect(signIn).toHaveBeenCalledTimes(1)
   })
 })

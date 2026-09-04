@@ -12,6 +12,7 @@ import {
   type SegmentedControlOption
 } from 'components/ui/segmented-control'
 import SiteFooter from 'components/site-footer'
+import { AuthControl } from 'features/auth'
 import logo from 'assets/logo.png'
 import { statusText } from './game'
 import { PlayerKind } from './players'
@@ -149,6 +150,7 @@ function ChessGameContent({ invitePeerId, onInviteSettled }: ChessGameProps) {
             className="h-9"
           />
           {soundToggle('icon')}
+          <AuthControl size="icon" />
         </div>
       </header>
 
@@ -171,6 +173,7 @@ function ChessGameContent({ invitePeerId, onInviteSettled }: ChessGameProps) {
             className="h-12 flex-1"
           />
           {soundToggle('icon-lg')}
+          <AuthControl size="icon-lg" />
         </div>
       </div>
 

@@ -20,6 +20,9 @@ dependencies:
   lucide-react:
     specifier: ^1.33.0
     version: 1.33.0(react@19.2.8)
+  oidc-client-ts:
+    specifier: ^3.5.0
+    version: 3.5.0
   peerjs:
     specifier: ^1.5.5
     version: 1.5.5
@@ -32,6 +35,9 @@ dependencies:
   react-dom:
     specifier: ^19.2.8
     version: 19.2.8(react@19.2.8)
+  react-oidc-context:
+    specifier: ^3.3.1
+    version: 3.3.1(oidc-client-ts@3.5.0)(react@19.2.8)
   react-router-dom:
     specifier: ^7.18.2
     version: 7.18.2(react-dom@19.2.8)(react@19.2.8)
@@ -3022,6 +3028,11 @@ packages:
       object.values: 1.2.1
     dev: true
 
+  /jwt-decode@4.0.0:
+    resolution: {integrity: sha512-+KJGIyHgkGuIq3IEBNftfhW/LfWhXUIY6OmyVWjliu5KH1y0fw7VQ8YndE2O4qZdMSd9SqbnC8GOcZEy0Om7sA==}
+    engines: {node: '>=18'}
+    dev: false
+
   /keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
     dependencies:
@@ -3295,6 +3306,13 @@ packages:
       define-properties: 1.2.1
       es-object-atoms: 1.1.2
     dev: true
+
+  /oidc-client-ts@3.5.0:
+    resolution: {integrity: sha512-l2q8l9CTCTOlbX+AnK4p3M+4CEpKpyQhle6blQkdFhm0IsBqsxm15bYaSa11G7pWdsYr6epdsRZxJpCyCRbT8A==}
+    engines: {node: '>=18'}
+    dependencies:
+      jwt-decode: 4.0.0
+    dev: false
 
   /once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
@@ -3641,6 +3659,17 @@ packages:
   /react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
     dev: true
+
+  /react-oidc-context@3.3.1(oidc-client-ts@3.5.0)(react@19.2.8):
+    resolution: {integrity: sha512-/Azvm9W4DhhOtSDBE73kFInh1b6zZRRfILKbgmk2syExMF0PCYJOn/dGdOOi2BFX8x0rCeUe45NXHU+/+xDcrQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      oidc-client-ts: ^3.1.0
+      react: '>=16.14.0'
+    dependencies:
+      oidc-client-ts: 3.5.0
+      react: 19.2.8
+    dev: false
 
   /react-router-dom@7.18.2(react-dom@19.2.8)(react@19.2.8):
     resolution: {integrity: sha512-AIKJ/jgGlFb3EbfCXk5Gzshiwt+l3mqbCrNjmEWMMjqQxNJ3svBa6bgzFyCC2Sw3RA0VWF1kg3uQf2OFhxb8hw==}

@@ -15,7 +15,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       all: true,
-      include: ['src/features/chess/**'],
+      include: ['src/features/chess/**', 'src/features/auth/**'],
       exclude: ['**/*.test.{ts,tsx}'],
       reporter: ['text', 'html'],
       thresholds: {
