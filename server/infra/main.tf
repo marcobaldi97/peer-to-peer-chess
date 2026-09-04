@@ -58,6 +58,12 @@ resource "aws_lambda_function" "api" {
   memory_size   = var.memory_size
   timeout       = var.timeout
 
+  # Hard ceiling on concurrent executions. This is a pet project, not a
+  # service that needs to scale — the goal here is a cost/blast-radius cap
+  # (a request flood queues or gets throttled instead of fanning out to
+  # unbounded concurrent, billable invocations), not throughput.
+  reserved_concurrent_executions = var.reserved_concurrency
+
   filename         = var.lambda_zip_path
   source_code_hash = filebase64sha256(var.lambda_zip_path)
 
@@ -98,7 +104,18 @@ resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.http_api.id
   name        = "$default"
   auto_deploy = true
-  tags        = var.tags
+
+  # Throttle at the API Gateway edge, ahead of the Lambda. This is the cheap,
+  # built-in guard against a request flood (accidental or malicious) turning
+  # into a runaway bill: excess requests get a 429 from API Gateway itself
+  # instead of reaching (and billing) the Lambda. Deliberately conservative
+  # for a pet project — raise these if real traffic ever needs more.
+  default_route_settings {
+    throttling_burst_limit = var.api_throttling_burst_limit
+    throttling_rate_limit  = var.api_throttling_rate_limit
+  }
+
+  tags = var.tags
 }
 
 resource "aws_lambda_permission" "apigw" {

@@ -32,6 +32,34 @@ variable "timeout" {
   default     = 10
 }
 
+variable "reserved_concurrency" {
+  description = <<-EOT
+    Reserved (and therefore maximum) concurrent executions for the Lambda
+    function. Acts as a hard cost/blast-radius cap — this is a pet project,
+    not something that needs to scale. Requests beyond this concurrency are
+    throttled by Lambda rather than running unbounded.
+  EOT
+  type        = number
+  default     = 5
+}
+
+variable "api_throttling_rate_limit" {
+  description = <<-EOT
+    Steady-state requests-per-second allowed through the HTTP API's default
+    stage before API Gateway starts returning 429s. Kept low on purpose: this
+    throttles abusive/flooding traffic at the gateway, before it can reach
+    (and bill) the Lambda.
+  EOT
+  type        = number
+  default     = 5
+}
+
+variable "api_throttling_burst_limit" {
+  description = "Token bucket burst capacity for the HTTP API's default stage, on top of api_throttling_rate_limit."
+  type        = number
+  default     = 10
+}
+
 variable "environment_variables" {
   description = "Extra environment variables to pass to the Lambda function."
   type        = map(string)
