@@ -15,7 +15,6 @@ import logo from 'assets/logo.png'
 import { statusText } from './game'
 import { useGame } from './hooks/use-game'
 import { ChessBoard } from './components/chess-board'
-import { SaveGame } from './components/save-game'
 import OnlineChessGame from './components/online-chess-game'
 
 const preloadSounds: LibrarySoundName[] = [
@@ -57,8 +56,6 @@ function LocalChessGame({ vsComputer }: { vsComputer: boolean }) {
           hideStatusWhenInProgress
         />
       </div>
-
-      <SaveGame snapshot={snapshot} />
 
       <Button variant="primary" size="block" onClick={newGame}>
         New Game
