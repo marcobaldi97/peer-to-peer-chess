@@ -29,7 +29,16 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # These are inlined into the bundle at build time. They are public values
+      # (a user pool id and a public SPA client id), so they live in repository
+      # Variables rather than Secrets. Leaving them unset builds a working site
+      # with sign-in hidden.
       - run: pnpm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_COGNITO_AUTHORITY: ${{ vars.VITE_COGNITO_AUTHORITY }}
+          VITE_COGNITO_CLIENT_ID: ${{ vars.VITE_COGNITO_CLIENT_ID }}
+          VITE_COGNITO_DOMAIN: ${{ vars.VITE_COGNITO_DOMAIN }}
 
       - uses: actions/configure-pages@v5
 

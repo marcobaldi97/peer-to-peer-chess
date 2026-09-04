@@ -10,10 +10,11 @@ The objective is to show my skills as a full-stack engineer in developing and de
 - Play against computer (Stockfish)
 - Play online (PeerJS)
 - Play sound cues (react-sound)
+- Sign in with email or Google (AWS Cognito)
+- Save a completed game (AWS Lambda)
 
 ### Todo
-- Authentication (AWS Cognito)
-- Match history (AWS Lambda/DynamoDB)
+- Match history (DynamoDB)
 
 ## Install
 
