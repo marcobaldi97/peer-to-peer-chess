@@ -85,6 +85,24 @@ describe('<OnlineLobby />', () => {
       )
     })
 
+    it('shows a QR code that encodes the invite link', () => {
+      const { connection, setSnapshot } = createFakeConnection()
+      vi.mocked(hostGame).mockReturnValue(connection)
+      render(<OnlineLobby onConnected={vi.fn()} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /create game/i }))
+
+      expect(screen.queryByTestId('invite-qr-code')).not.toBeInTheDocument()
+
+      act(() =>
+        setSnapshot({ status: ConnectionStatus.Waiting, localPeerId: 'abc123' })
+      )
+
+      const qrCode = screen.getByTestId('invite-qr-code')
+      expect(qrCode.querySelector('svg')).toBeInTheDocument()
+      expect(qrCode).toHaveTextContent('Scan to join the game')
+    })
+
     it('copies the invite link to the clipboard', () => {
       const { connection, setSnapshot } = createFakeConnection()
       vi.mocked(hostGame).mockReturnValue(connection)

@@ -7,6 +7,7 @@ import {
 } from 'react'
 import type { Color } from 'chess.js'
 import { Check, Copy } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import { cn } from 'lib/utils'
 import { Button } from 'components/ui/button'
 import { Input } from 'components/ui/input'
@@ -119,6 +120,18 @@ function ConnectingScreen({
                 <Copy className="size-4" />
               )}
             </Button>
+          </div>
+          <div
+            data-testid="invite-qr-code"
+            className="rounded border border-divider bg-white p-3"
+          >
+            <QRCodeSVG
+              value={inviteUrl}
+              size={160}
+              bgColor="#ffffff"
+              fgColor="#000000"
+              title="Scan to join the game"
+            />
           </div>
           <p className="text-xs text-text/55">
             Or share this code: {snapshot.localPeerId}
